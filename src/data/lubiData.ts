@@ -119,6 +119,53 @@ export const catchments = catchmentsJson as {
   features: CatchmentFeature[];
 };
 
+function northernmostVertex(features: CatchmentFeature[]): { longitude: number; latitude: number } {
+  let longitude = 0;
+  let latitude = -90;
+  for (const f of features) {
+    for (const ring of f.geometry.coordinates) {
+      for (const [lon, lat] of ring) {
+        if (lat > latitude) {
+          latitude = lat;
+          longitude = lon;
+        }
+      }
+    }
+  }
+  return {
+    longitude: Math.round(longitude * 1e5) / 1e5,
+    latitude: Math.round(latitude * 1e5) / 1e5,
+  };
+}
+
+export interface Exutoire {
+  id: string;
+  code: string;
+  nom: string;
+  zone: string;
+  latitude: number;
+  longitude: number;
+  debit: number;
+  profondeur: number;
+  navigation: NavStatus;
+  status: StatusLevel;
+  derniereMesure: string;
+}
+
+/** Pourpoint du bassin (pointe nord) — confluence Lubi / Sankuru. */
+export const exutoire: Exutoire = {
+  id: "exutoire",
+  code: "EXU-001",
+  nom: "Port Tshangabeni",
+  zone: "Exutoire — confluence Lubi / Sankuru",
+  ...northernmostVertex(catchments.features),
+  debit: meta.junctionLast as number,
+  profondeur: meta.profondeurLast as number,
+  navigation: meta.navigationLast as NavStatus,
+  status: meta.etatGlobal as StatusLevel,
+  derniereMesure: `${LAST_DATE} ${LAST_HEURE}`,
+};
+
 export const monthlyAverages = meta.monthlyAverages as {
   month: number;
   label: string;

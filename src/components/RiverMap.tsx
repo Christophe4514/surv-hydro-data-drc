@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, LayersControl, useMap } from "react-leaflet";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import "leaflet/dist/leaflet.css";
-import { stations, catchments, type Station, type CatchmentFeature } from "../data/lubiData";
+import { stations, catchments, exutoire, type Station, type CatchmentFeature } from "../data/lubiData";
 
 const statusColors: Record<string, string> = {
   normal: "#10b981",
@@ -21,12 +21,15 @@ export interface MapFilters {
   stations: boolean;
   navigables: boolean;
   nonNavigables: boolean;
+  exutoire: boolean;
 }
 
 interface Props {
   onStationClick?: (s: Station) => void;
+  onExutoireClick?: () => void;
   compact?: boolean;
   selectedCode?: string | null;
+  selectedExutoire?: boolean;
   filters?: MapFilters;
 }
 
@@ -44,20 +47,32 @@ function FitBounds() {
   return null;
 }
 
-function FlyToSelected({ station }: { station: Station | undefined }) {
+function FlyToSelected({
+  station,
+  toExutoire,
+}: {
+  station: Station | undefined;
+  toExutoire: boolean;
+}) {
   const map = useMap();
   useEffect(() => {
+    if (toExutoire) {
+      map.flyTo([exutoire.latitude, exutoire.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 });
+      return;
+    }
     if (!station) return;
     map.flyTo([station.latitude, station.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 });
-  }, [station, map]);
+  }, [station, toExutoire, map]);
   return null;
 }
 
 export default function RiverMap({
   onStationClick,
+  onExutoireClick,
   compact = false,
   selectedCode = null,
-  filters = { stations: true, navigables: true, nonNavigables: true },
+  selectedExutoire = false,
+  filters = { stations: true, navigables: true, nonNavigables: true, exutoire: true },
 }: Props) {
   const byCode = useMemo(() => new Map(stations.map((s) => [s.code, s])), []);
   const selected = stations.find((s) => s.code === selectedCode);
@@ -112,7 +127,7 @@ export default function RiverMap({
         style={{ height: "100%", width: "100%", background: "#071223" }}
       >
         <FitBounds />
-        <FlyToSelected station={selected} />
+        <FlyToSelected station={selected} toExutoire={selectedExutoire} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan sombre">
             <TileLayer
@@ -164,6 +179,34 @@ export default function RiverMap({
             </Tooltip>
           </CircleMarker>
         ))}
+
+        {filters.exutoire && (
+          <>
+            <CircleMarker
+              center={[exutoire.latitude, exutoire.longitude]}
+              radius={selectedExutoire ? 18 : 16}
+              pathOptions={{ color: "#ef4444", weight: 0, fillColor: "#ef4444", fillOpacity: 0.22 }}
+              eventHandlers={{ click: () => onExutoireClick?.() }}
+            />
+            <CircleMarker
+              center={[exutoire.latitude, exutoire.longitude]}
+              radius={selectedExutoire ? 9 : 8}
+              pathOptions={{
+                color: "#ffffff",
+                weight: 2.5,
+                fillColor: "#ef4444",
+                fillOpacity: 1,
+              }}
+              eventHandlers={{ click: () => onExutoireClick?.() }}
+            >
+              <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent={!compact}>
+                <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700 }}>
+                  Exutoire · Port Tshangabeni
+                </span>
+              </Tooltip>
+            </CircleMarker>
+          </>
+        )}
       </MapContainer>
 
       <div
@@ -174,9 +217,13 @@ export default function RiverMap({
           { color: "#10b981", label: "Navigable (≥ 1,5 m)" },
           { color: "#f59e0b", label: "Vigilance (1,2–1,5 m)" },
           { color: "#ef4444", label: "Non navigable (< 1,2 m)" },
+          { color: "#ef4444", label: "Exutoire — Port Tshangabeni", ring: true },
         ].map((l) => (
           <div key={l.label} className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: l.color }} />
+            <div
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ background: l.color, boxShadow: l.ring ? "0 0 0 1.5px #fff" : undefined }}
+            />
             <span className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.85)" }}>{l.label}</span>
           </div>
         ))}

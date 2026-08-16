@@ -39,13 +39,13 @@ function lubiBundle(): HydroBundle {
     statsGlobales: lubi.statsGlobales,
     monthlyAverages: lubi.monthlyAverages,
     debitClasse: lubi.debitClasse,
+    profondeurOverlay: lubi.profondeurOverlay,
     navigableByMonth: lubi.navigableByMonth,
     navigableByYear: lubi.navigableByYear,
     saisonStats: lubi.saisonStats,
     DATA_PERIOD: lubi.DATA_PERIOD,
     LAST_DATE: lubi.LAST_DATE,
     LAST_HEURE: lubi.LAST_HEURE,
-    FORMULE_PROFONDEUR: lubi.FORMULE_PROFONDEUR,
     seuils: lubi.SEUILS_NAV,
     getStationSeries: lubi.getStationSeries,
     getCalendarDays: lubi.getCalendarDays,
@@ -68,7 +68,7 @@ function lubiBundle(): HydroBundle {
         navigation: r.navigation,
         saison: r.saison,
       })),
-    tableHeaders: ["Date", "Heure", "Lubi (2)", "Lubi (1)", "Lukeshi", "Bi (A)", "Lupaka", "Jonction", "H (m)", "Navigation", "Saison"],
+    tableHeaders: ["Date", "Heure", "Lubi (2)", "Lubi (1)", "Lukeshi", "Bi (A)", "Lupaka", "Jonction", "Hauteur (m)", "Navigation", "Saison"],
   };
 }
 

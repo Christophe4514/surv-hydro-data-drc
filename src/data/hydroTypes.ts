@@ -17,6 +17,12 @@ export interface DebitClassePoint {
   pct: number;
 }
 
+export interface ProfondeurOverlay {
+  url: string;
+  bounds: [[number, number], [number, number]];
+  classes: { value: number; label: string; color: string }[];
+}
+
 export interface DebitClasse {
   n: number;
   q10: number;
@@ -91,6 +97,7 @@ export interface HydroBundle {
   };
   monthlyAverages: { month: number; label: string; qMoyenne: number; profondeurMoyenne: number }[];
   debitClasse: DebitClasse;
+  profondeurOverlay: ProfondeurOverlay | null;
   navigableByMonth: { date: string; year: number; month: number; jours13: number; jours15: number; jours12: number }[];
   navigableByYear: { year: number; joursNavigables: number }[];
   saisonStats: {
@@ -118,7 +125,6 @@ export interface HydroBundle {
   DATA_PERIOD: { start: string; end: string; nDays: number };
   LAST_DATE: string;
   LAST_HEURE: string;
-  FORMULE_PROFONDEUR: string;
   seuils: StationSeuils;
   getStationSeries: (code: string, lastN?: number) => MesureHistorique[];
   getCalendarDays: (year: number, monthIndex: number) => JourNavigation[];

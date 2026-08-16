@@ -3,7 +3,8 @@ import dailyJson from "./generated/daily.json";
 import catchmentsJson from "./generated/catchments.json";
 import portsJson from "./generated/ports.json";
 import debitClasseJson from "./generated/debitClasse.json";
-import type { DebitClasse } from "./hydroTypes";
+import profondeurOverlayJson from "./generated/profondeurOverlay.json";
+import type { DebitClasse, ProfondeurOverlay } from "./hydroTypes";
 
 export type StatusLevel = "normal" | "vigilance" | "alerte" | "critique";
 export type NavStatus = "navigable" | "vigilance" | "non-navigable";
@@ -110,7 +111,6 @@ type DailyFile = {
 const daily = dailyJson as DailyFile;
 const meta = metaJson;
 
-export const FORMULE_PROFONDEUR = meta.formule;
 export const SEUILS_NAV = meta.seuils as StationSeuils;
 export const DATA_PERIOD = meta.period as { start: string; end: string; nDays: number };
 export const LAST_DATE = meta.lastDate as string;
@@ -177,6 +177,7 @@ export const monthlyAverages = meta.monthlyAverages as {
 }[];
 
 export const debitClasse = debitClasseJson as DebitClasse;
+export const profondeurOverlay = profondeurOverlayJson as ProfondeurOverlay;
 
 export const navigableByMonth = meta.navigableByMonth as {
   date: string;
@@ -359,14 +360,14 @@ function buildAlertes(): AlerteItem[] {
         gravite: "critique",
         station: s.code,
         zone: s.nom,
-        parametre: "Profondeur",
+        parametre: "Hauteur",
         valeurActuelle: s.profondeur,
         unite: "m",
         seuil: SEUILS_NAV.etage,
         date,
         heure,
         statut: "active",
-        description: `Profondeur ${fmtFr(s.profondeur, 2)} m < seuil d'étiage ${SEUILS_NAV.etage} m — navigation impossible (${s.nom}).`,
+        description: `Hauteur ${fmtFr(s.profondeur, 2)} m < seuil d'étiage ${SEUILS_NAV.etage} m — navigation impossible (${s.nom}).`,
       });
       items.push({
         id: `A${String(n++).padStart(3, "0")}`,
@@ -390,7 +391,7 @@ function buildAlertes(): AlerteItem[] {
         gravite: "vigilance",
         station: s.code,
         zone: s.nom,
-        parametre: "Profondeur",
+        parametre: "Hauteur",
         valeurActuelle: s.profondeur,
         unite: "m",
         seuil: SEUILS_NAV.navigable,

@@ -208,14 +208,14 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
         gravite: "critique",
         station: s.code,
         zone: s.nom,
-        parametre: "Profondeur",
+        parametre: "Hauteur",
         valeurActuelle: s.profondeur,
         unite: "m",
         seuil: seuils.etage,
         date: formatDateFr(lastDate),
         heure: lastHeure,
         statut: "active",
-        description: `Profondeur ${fmtFr(s.profondeur, 2)} m < seuil d'étiage ${seuils.etage} m (${s.nom}).`,
+        description: `Hauteur ${fmtFr(s.profondeur, 2)} m < seuil d'étiage ${seuils.etage} m (${s.nom}).`,
       });
     } else if (s.navigation === "vigilance") {
       alertes.push({
@@ -224,7 +224,7 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
         gravite: "vigilance",
         station: s.code,
         zone: s.nom,
-        parametre: "Profondeur",
+        parametre: "Hauteur",
         valeurActuelle: s.profondeur,
         unite: "m",
         seuil: seuils.navigable,
@@ -345,6 +345,7 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
     },
     monthlyAverages,
     debitClasse: debitClasseFromQ(raw.junction),
+    profondeurOverlay: null,
     navigableByMonth: [...byMonth.values()].map((b) => ({
       date: `${b.year}-${String(b.month).padStart(2, "0")}-01`,
       year: b.year,
@@ -362,11 +363,10 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
     },
     LAST_DATE: lastDate,
     LAST_HEURE: lastHeure,
-    FORMULE_PROFONDEUR: "Q = 28 × 65 × H^(5/3) × √0.000625  ⇒  H = (Q / 45.5)^(3/5)",
     seuils: { etage: seuils.etage, pluie: seuils.pluie, navigable: seuils.navigable },
     getStationSeries,
     getCalendarDays,
     getQsimRows,
-    tableHeaders: ["Date", "Heure", ...stations.map((s) => s.nom), "Jonction", "H (m)", "Navigation", "Saison"],
+    tableHeaders: ["Date", "Heure", ...stations.map((s) => s.nom), "Jonction", "Hauteur (m)", "Navigation", "Saison"],
   };
 }

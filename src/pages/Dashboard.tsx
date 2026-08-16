@@ -5,10 +5,11 @@ import {
 import type { PageId } from "../App";
 import {
   stations, alertes, getStationSeries, statsGlobales, monthlyAverages, fmtFr,
-  SEUILS_NAV, LAST_DATE, formatDateFr,
+  LAST_DATE, formatDateFr,
 } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
+import { useSettings } from "../context/SettingsContext";
 
 interface Props { onNavigate: (p: PageId) => void; }
 
@@ -27,6 +28,7 @@ const alertTypeIcon: Record<string, string> = {
 
 export default function Dashboard({ onNavigate }: Props) {
   const [chartPeriod, setChartPeriod] = useState<"30j" | "365j">("30j");
+  const { seuils, formatDepth, navOf, statusOf, alertEnabled } = useSettings();
 
   const chartData = getStationSeries("JUNCTION", chartPeriod === "30j" ? 30 : 365).map((d) => ({
     date: d.date.slice(5),
@@ -34,9 +36,10 @@ export default function Dashboard({ onNavigate }: Props) {
     debit: d.debit,
   }));
 
-  const alertesActives = alertes.filter((a) => a.statut === "active").slice(0, 4);
+  const alertesActives = alertes.filter((a) => a.statut === "active" && alertEnabled(a.gravite)).slice(0, 4);
   const j = statsGlobales;
-  const globalStatus = j.zonesNonNavigables > 0 ? "alerte" : j.zonesVigilance > 0 ? "vigilance" : "normal";
+  const junctionNav = navOf(j.junctionProfondeur);
+  const globalStatus = statusOf(j.junctionProfondeur);
   const globalLabel = {
     normal: "CONDITIONS NORMALES",
     vigilance: "VIGILANCE",
@@ -58,19 +61,19 @@ export default function Dashboard({ onNavigate }: Props) {
     },
     {
       label: "Profondeur",
-      value: `${fmtFr(j.junctionProfondeur, 2)} m`,
-      variation: `seuil ${SEUILS_NAV.navigable} m`,
-      varPos: j.junctionProfondeur >= SEUILS_NAV.navigable,
-      status: j.junctionProfondeur >= SEUILS_NAV.navigable ? "normal" : "alerte",
+      value: formatDepth(j.junctionProfondeur, 2),
+      variation: `seuil ${formatDepth(seuils.navigable, 1)}`,
+      varPos: j.junctionProfondeur >= seuils.navigable,
+      status: j.junctionProfondeur >= seuils.navigable ? "normal" : "alerte",
       sub: "H = (Q / 45,5)^(3/5)",
     },
     {
       label: "Navigation",
-      value: j.junctionNav === "navigable" ? "NAVIGABLE" : j.junctionNav === "vigilance" ? "VIGILANCE" : "IMPOSSIBLE",
+      value: junctionNav === "navigable" ? "NAVIGABLE" : junctionNav === "vigilance" ? "VIGILANCE" : "IMPOSSIBLE",
       variation: `${j.zonesNavigables} / 5 bassins`,
-      varPos: j.junctionNav === "navigable",
-      status: j.junctionNav === "navigable" ? "normal" : "alerte",
-      sub: "Tirant 1,5 m",
+      varPos: junctionNav === "navigable",
+      status: junctionNav === "navigable" ? "normal" : "alerte",
+      sub: `Tirant ${formatDepth(seuils.navigable, 1)}`,
     },
     {
       label: "Bassins OK",
@@ -192,8 +195,8 @@ export default function Dashboard({ onNavigate }: Props) {
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }} interval={chartPeriod === "365j" ? 40 : 4} />
               <YAxis tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }} />
               <Tooltip contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }} />
-              <ReferenceLine y={SEUILS_NAV.navigable} stroke="#10b981" strokeDasharray="4 3" label={{ value: "1,5 m", position: "right", fontSize: 9, fill: "#10b981" }} />
-              <ReferenceLine y={SEUILS_NAV.etage} stroke="#ef4444" strokeDasharray="4 3" label={{ value: "1,2 m", position: "right", fontSize: 9, fill: "#ef4444" }} />
+              <ReferenceLine y={seuils.navigable} stroke="#10b981" strokeDasharray="4 3" label={{ value: formatDepth(seuils.navigable, 1), position: "right", fontSize: 9, fill: "#10b981" }} />
+              <ReferenceLine y={seuils.etage} stroke="#ef4444" strokeDasharray="4 3" label={{ value: formatDepth(seuils.etage, 1), position: "right", fontSize: 9, fill: "#ef4444" }} />
               <Area type="monotone" dataKey="profondeur" stroke="#06b6d4" strokeWidth={2} fill="url(#niveauGrad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>

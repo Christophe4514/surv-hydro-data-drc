@@ -1,9 +1,10 @@
 import { useState } from "react";
 import {
   stations, type NavStatus, getCalendarDays, navigableByMonth, navigableByYear,
-  statsGlobales, LAST_DATE, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_NAV, Q_SEUIL_ETIAGE, Q_SEUIL_PLUIE,
+  statsGlobales, LAST_DATE, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_PLUIE,
 } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
+import { useSettings } from "../context/SettingsContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -28,6 +29,7 @@ type TabId = "conditions" | "calendrier" | "logique";
 export default function Navigation() {
   const [tab, setTab] = useState<TabId>("conditions");
   const [calMonth, setCalMonth] = useState(11);
+  const { seuils, qNavigable, qEtiage, formatDepth, navOf } = useSettings();
   const [calYear, setCalYear] = useState(2022);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
@@ -62,9 +64,9 @@ export default function Navigation() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: statsGlobales.junctionNav === "navigable" ? "#10b981" : "#f97316" }} />
-              <h2 className="font-display font-700 text-2xl" style={{ color: statsGlobales.junctionNav === "navigable" ? "#10b981" : "#f97316" }}>
-                JONCTION : {statsGlobales.junctionNav === "navigable" ? "NAVIGABLE" : "VIGILANCE"}
+              <div className="w-3 h-3 rounded-full" style={{ background: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f97316" }} />
+              <h2 className="font-display font-700 text-2xl" style={{ color: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f97316" }}>
+                JONCTION : {navOf(statsGlobales.junctionProfondeur) === "navigable" ? "NAVIGABLE" : navOf(statsGlobales.junctionProfondeur) === "vigilance" ? "VIGILANCE" : "NON NAVIGABLE"}
               </h2>
             </div>
             <p className="text-sm mt-1" style={{ color: "rgba(226,232,240,0.6)" }}>
@@ -76,9 +78,9 @@ export default function Navigation() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Profondeur jonction", value: `${fmtFr(statsGlobales.junctionProfondeur, 2)} m`, color: "#22d3ee" },
+          { label: "Profondeur jonction", value: formatDepth(statsGlobales.junctionProfondeur, 2), color: "#22d3ee" },
           { label: "Débit jonction", value: `${fmtFr(statsGlobales.junctionDebit, 1)} m³/s`, color: "#22d3ee" },
-          { label: "Tirant 1,5 m", value: `${Q_SEUIL_NAV} m³/s`, color: "#10b981" },
+          { label: `Tirant ${formatDepth(seuils.navigable, 1)}`, value: `${qNavigable} m³/s`, color: "#10b981" },
           { label: "Bassins navigables", value: `${statsGlobales.zonesNavigables} / 5`, color: "#10b981" },
           { label: "Vigilance", value: `${statsGlobales.zonesVigilance} / 5`, color: "#f59e0b" },
           { label: "Non navigables", value: `${statsGlobales.zonesNonNavigables} / 5`, color: "#ef4444" },
@@ -165,7 +167,7 @@ export default function Navigation() {
                         Profondeur de navigation
                       </p>
                       <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.5)" }}>
-                        Seuil min: 1,5 m (étiage 1,2 m)
+                        Seuil min: {formatDepth(seuils.navigable, 1)} (étiage {formatDepth(seuils.etage, 1)})
                       </p>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -173,7 +175,7 @@ export default function Navigation() {
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${Math.min(100, (s.profondeur / 5) * 100)}%`,
-                          background: s.profondeur >= 1.5 ? "#10b981" : s.profondeur >= 1.2 ? "#f59e0b" : "#ef4444",
+                          background: navOf(s.profondeur) === "navigable" ? "#10b981" : navOf(s.profondeur) === "vigilance" ? "#f59e0b" : "#ef4444",
                         }}
                       />
                     </div>
@@ -448,8 +450,8 @@ export default function Navigation() {
                 <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "#10b981" }}>
                   Résultat
                 </p>
-                <p className="font-display font-700 text-2xl" style={{ color: statsGlobales.junctionNav === "navigable" ? "#10b981" : "#f59e0b" }}>
-                  {statsGlobales.junctionNav === "navigable" ? "🟢 NAVIGATION FAVORABLE" : "🟡 VIGILANCE"}
+                <p className="font-display font-700 text-2xl" style={{ color: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f59e0b" }}>
+                  {navOf(statsGlobales.junctionProfondeur) === "navigable" ? "🟢 NAVIGATION FAVORABLE" : navOf(statsGlobales.junctionProfondeur) === "vigilance" ? "🟡 VIGILANCE" : "🔴 NON NAVIGABLE"}
                 </p>
                 <p className="text-[11px] mt-1" style={{ color: "rgba(148,163,184,0.6)" }}>
                   {FORMULE_PROFONDEUR}
@@ -463,10 +465,10 @@ export default function Navigation() {
               <p className="font-display font-600 text-sm text-white mb-4">Seuils de navigabilité</p>
               <div className="space-y-2.5">
                 {[
-                  { label: "Tirant navigable", value: "1,5 m", status: `Q ≥ ${Q_SEUIL_NAV} m³/s` },
-                  { label: "Tirant saison des pluies", value: "1,3 m", status: `Q ≥ ${Q_SEUIL_PLUIE} m³/s` },
-                  { label: "Tirant d'étiage", value: "1,2 m", status: `Q ≥ ${Q_SEUIL_ETIAGE} m³/s` },
-                  { label: "Non navigable", value: "< 1,2 m", status: "Navigation impossible" },
+                  { label: "Tirant navigable", value: formatDepth(seuils.navigable, 1), status: `Q ≥ ${qNavigable} m³/s` },
+                  { label: "Tirant saison des pluies", value: formatDepth(seuils.pluie, 1), status: `Q ≥ ${Q_SEUIL_PLUIE} m³/s` },
+                  { label: "Tirant d'étiage", value: formatDepth(seuils.etage, 1), status: `Q ≥ ${qEtiage} m³/s` },
+                  { label: "Non navigable", value: `< ${formatDepth(seuils.etage, 1)}`, status: "Navigation impossible" },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
                     <div>

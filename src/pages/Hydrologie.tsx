@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend,
 } from "recharts";
-import { getStationSeries, stationCodes, monthlyAverages, SEUILS_NAV, Q_SEUIL_NAV, Q_SEUIL_ETIAGE } from "../data/lubiData";
+import { getStationSeries, stationCodes, monthlyAverages, qFromH } from "../data/lubiData";
+import { useSettings } from "../context/SettingsContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -19,6 +20,7 @@ export default function Hydrologie() {
   const [period, setPeriod] = useState<Period>("1an");
   const [station, setStation] = useState("JUNCTION");
   const [param, setParam] = useState<"debit" | "profondeur">("debit");
+  const { seuils, formatDepth } = useSettings();
 
   const series = period === "climato"
     ? monthlyAverages.map((m) => ({
@@ -43,8 +45,8 @@ export default function Hydrologie() {
       color: "#10b981",
       grad: "debitGrad",
       seuils: [
-        { y: Q_SEUIL_NAV, color: "#10b981", label: "1,5 m" },
-        { y: Q_SEUIL_ETIAGE, color: "#ef4444", label: "1,2 m" },
+        { y: qFromH(seuils.navigable), color: "#10b981", label: formatDepth(seuils.navigable, 1) },
+        { y: qFromH(seuils.etage), color: "#ef4444", label: formatDepth(seuils.etage, 1) },
       ],
     },
     profondeur: {
@@ -52,8 +54,8 @@ export default function Hydrologie() {
       color: "#8b5cf6",
       grad: "profGrad",
       seuils: [
-        { y: SEUILS_NAV.navigable, color: "#10b981", label: "1,5 m" },
-        { y: SEUILS_NAV.etage, color: "#ef4444", label: "1,2 m" },
+        { y: seuils.navigable, color: "#10b981", label: formatDepth(seuils.navigable, 1) },
+        { y: seuils.etage, color: "#ef4444", label: formatDepth(seuils.etage, 1) },
       ],
     },
   };

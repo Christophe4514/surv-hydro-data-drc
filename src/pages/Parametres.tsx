@@ -112,7 +112,7 @@ export default function Parametres() {
           ))}
         </div>
         <p className="text-[11px] mt-3 px-3 py-2 rounded-lg font-mono" style={{ background: "rgba(34,211,238,0.05)", color: "rgba(34,211,238,0.6)", border: "1px solid rgba(34,211,238,0.1)" }}>
-          {bundle.FORMULE_PROFONDEUR} · Période {bundle.DATA_PERIOD.start} → {bundle.DATA_PERIOD.end} ({bundle.DATA_PERIOD.nDays} j).
+          Période {bundle.DATA_PERIOD.start} → {bundle.DATA_PERIOD.end} ({bundle.DATA_PERIOD.nDays} j).
           {bundle.mode === "lubi" ? " Carte : Shape Lubi + Port Lubi (WGS84)." : " Carte : point de référence (pas de shapefile bassin)."}
         </p>
       </div>
@@ -187,7 +187,7 @@ export default function Parametres() {
         <p className="font-display font-600 text-sm text-white mb-4">Affichage</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="p-3 rounded-lg block" style={{ background: "rgba(255,255,255,0.02)" }}>
-            <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>Unité de profondeur</p>
+            <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>Unité de hauteur</p>
             <select
               value={draft.unite}
               onChange={(e) => update("unite", e.target.value)}
@@ -262,8 +262,8 @@ export default function Parametres() {
         <p className="font-display font-600 text-sm text-white mb-4">Seuils de navigation</p>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { key: "profondeur_nav_min" as const, label: "Profondeur navigable min.", color: "#10b981" },
-            { key: "profondeur_vigilance" as const, label: "Profondeur vigilance (étiage)", color: "#f59e0b" },
+            { key: "profondeur_nav_min" as const, label: "Hauteur navigable min.", color: "#10b981" },
+            { key: "profondeur_vigilance" as const, label: "Hauteur vigilance (étiage)", color: "#f59e0b" },
           ].map(({ key, label, color }) => (
             <div key={key} className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.02)" }}>
               <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>{label}</p>

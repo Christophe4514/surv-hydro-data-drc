@@ -105,7 +105,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
                 {th("zone", "Zone")}
                 {th("niveau", "Niveau (m)")}
                 {th("debit", "Débit (m³/s)")}
-                {th("profondeur", "Profondeur (m)")}
+                {th("profondeur", "Hauteur (m)")}
                 <th className="py-2.5 px-3 text-left font-mono font-500 text-[10px] uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
                   Navigation
                 </th>
@@ -216,7 +216,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
               { label: "Longitude", value: selected.longitude.toFixed(4) },
               { label: "Superficie", value: `${selected.areaKm2} km²` },
               { label: "Dernière mesure", value: selected.derniereMesure },
-              { label: "Profondeur", value: `${selected.profondeur} m` },
+              { label: "Hauteur", value: `${selected.profondeur} m` },
               { label: "Débit Qsim", value: `${selected.debit} m³/s` },
               { label: "Colonne Excel", value: selected.excelCol },
               { label: "Code bassin", value: selected.catchCode },

@@ -20,6 +20,7 @@ export default function Carte() {
     navigables: true,
     nonNavigables: true,
     ports: true,
+    hauteur: true,
     inondation: true,
     secheresse: true,
     alertes: true,
@@ -49,6 +50,9 @@ export default function Carte() {
             { key: "navigables" as const, label: "Bassins navigables", color: "#10b981" },
             { key: "nonNavigables" as const, label: "Bassins non navigables", color: "#ef4444" },
             { key: "ports" as const, label: "Ports fluviaux", color: "#f8fafc" },
+            ...(bundle.profondeurOverlay
+              ? [{ key: "hauteur" as const, label: "Classes de hauteur", color: "#10b981" }]
+              : []),
           ].map(({ key, label, color }) => (
             <label key={key} className="flex items-center gap-2.5 cursor-pointer group py-1">
               <div
@@ -79,6 +83,14 @@ export default function Carte() {
               ? [
                   { color: "#ef4444", label: "Exutoire (Tshangabeni)", ring: true, star: false },
                   { color: "#f8fafc", label: "Port fluvial", ring: false, star: true },
+                  ...(bundle.profondeurOverlay
+                    ? bundle.profondeurOverlay.classes.map((c) => ({
+                        color: c.color,
+                        label: c.label,
+                        ring: false,
+                        star: false,
+                      }))
+                    : []),
                 ]
               : [{ color: "#22d3ee", label: "Point de mesure", ring: false, star: false }]),
           ].map((l) => (
@@ -188,6 +200,7 @@ export default function Carte() {
                 navigables: filters.navigables,
                 nonNavigables: filters.nonNavigables,
                 ports: filters.ports,
+                hauteur: filters.hauteur,
               }}
             />
           </div>
@@ -211,7 +224,7 @@ export default function Carte() {
                 {[
                   { label: "Niveau", value: `${selected.station.niveau} m`, status: "normal" },
                   { label: "Débit", value: `${selected.station.debit} m³/s`, status: null },
-                  { label: "Profondeur", value: `${selected.station.profondeur} m`, status: null },
+                  { label: "Hauteur", value: `${selected.station.profondeur} m`, status: null },
                   { label: "Navigation", value: null, status: selected.station.navigation },
                   { label: "Inondation", value: null, status: selected.station.risqueInondation },
                   { label: "Sécheresse", value: null, status: selected.station.risqueSecheresse },
@@ -259,7 +272,7 @@ export default function Carte() {
                 {(selected.port.role === "exutoire" && exutoire
                   ? [
                       { label: "Débit Junction", value: `${exutoire.debit} m³/s` },
-                      { label: "Profondeur", value: `${exutoire.profondeur} m` },
+                      { label: "Hauteur", value: `${exutoire.profondeur} m` },
                       { label: "Latitude", value: `${selected.port.latitude}°` },
                       { label: "Longitude", value: `${selected.port.longitude}°` },
                     ]

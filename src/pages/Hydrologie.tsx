@@ -57,7 +57,7 @@ export default function Hydrologie() {
       ],
     },
     profondeur: {
-      label: "Profondeur (m)",
+      label: "Hauteur (m)",
       color: "#8b5cf6",
       grad: "profGrad",
       seuils: [
@@ -121,7 +121,7 @@ export default function Hydrologie() {
                 border: param === p ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(255,255,255,0.06)",
               }}
             >
-              {p === "debit" ? "Débit" : "Profondeur"}
+              {p === "debit" ? "Débit" : "Hauteur"}
             </button>
           ))}
         </div>
@@ -182,6 +182,7 @@ export default function Hydrologie() {
               strokeWidth={2}
               fill={`url(#${cfg.grad})`}
               dot={false}
+              name={cfg.label}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -223,7 +224,7 @@ export default function Hydrologie() {
             />
             <Legend wrapperStyle={{ fontSize: 10, color: "#94a3b8" }} />
             <Line yAxisId="left" type="monotone" dataKey="niveau" stroke="#06b6d4" strokeWidth={1.5} dot={false} name="Niveau (m)" />
-            <Line yAxisId="left" type="monotone" dataKey="profondeur" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Profondeur (m)" />
+            <Line yAxisId="left" type="monotone" dataKey="profondeur" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Hauteur (m)" />
           </LineChart>
         </ResponsiveContainer>
       </div>

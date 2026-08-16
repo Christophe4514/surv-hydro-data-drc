@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { type NavStatus, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_PLUIE } from "../data/lubiData";
+import { type NavStatus, fmtFr, Q_SEUIL_PLUIE } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import { useSettings } from "../context/SettingsContext";
 import { useHydroSource } from "../context/HydroSourceContext";
@@ -85,7 +85,7 @@ export default function Navigation() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Profondeur jonction", value: formatDepth(statsGlobales.junctionProfondeur, 2), color: "#22d3ee" },
+          { label: "Hauteur jonction", value: formatDepth(statsGlobales.junctionProfondeur, 2), color: "#22d3ee" },
           { label: "Débit jonction", value: `${fmtFr(statsGlobales.junctionDebit, 1)} m³/s`, color: "#22d3ee" },
           { label: `Tirant ${formatDepth(seuils.navigable, 1)}`, value: `${qNavigable} m³/s`, color: "#10b981" },
           { label: "Bassins navigables", value: `${statsGlobales.zonesNavigables} / 5`, color: "#10b981" },
@@ -153,7 +153,7 @@ export default function Navigation() {
                     {[
                       { label: "Niveau", value: `${s.niveau} m`, var: s.niveauVariation },
                       { label: "Débit", value: `${s.debit} m³/s`, var: s.debitVariation },
-                      { label: "Profondeur", value: `${s.profondeur} m`, var: null },
+                      { label: "Hauteur", value: `${s.profondeur} m`, var: null },
                     ].map((item) => (
                       <div key={item.label} className="p-2.5 rounded-lg text-center" style={{ background: "rgba(255,255,255,0.04)" }}>
                         <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>
@@ -171,7 +171,7 @@ export default function Navigation() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-[10px] font-mono uppercase" style={{ color: "rgba(148,163,184,0.5)" }}>
-                        Profondeur de navigation
+                        Hauteur de navigation
                       </p>
                       <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.5)" }}>
                         Seuil min: {formatDepth(seuils.navigable, 1)} (étiage {formatDepth(seuils.etage, 1)})
@@ -213,7 +213,7 @@ export default function Navigation() {
                   {monthNames[calMonth]} {calYear}
                 </p>
                 <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
-                  Jours navigables selon la profondeur calculée
+                  Jours navigables selon la hauteur calculée
                 </p>
               </div>
               <button
@@ -346,7 +346,7 @@ export default function Navigation() {
                     <span className="text-[11px] font-mono font-600 text-white">{hoveredData.debit} m³/s</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[11px]" style={{ color: "rgba(148,163,184,0.6)" }}>Profondeur</span>
+                    <span className="text-[11px]" style={{ color: "rgba(148,163,184,0.6)" }}>Hauteur</span>
                     <span className="text-[11px] font-mono font-600 text-white">{hoveredData.profondeur} m</span>
                   </div>
                 </div>
@@ -431,9 +431,7 @@ export default function Navigation() {
             <div className="space-y-3">
               {[
                 { label: "Débit jonction (Qsim)", value: `${fmtFr(statsGlobales.junctionDebit, 1)} m³/s`, color: "#22d3ee", icon: "⇌" },
-                { label: "Profondeur calculée", value: `${fmtFr(statsGlobales.junctionProfondeur, 2)} m`, color: "#22d3ee", icon: "↕" },
-                { label: "Formule", value: "H = (Q / 45,5)^(3/5)", color: "#94a3b8", icon: "ƒ" },
-                { label: "Q = 28×65×H^(5/3)×√0,000625", value: "profondeur-calc", color: "#10b981", icon: "🗺" },
+                { label: "Hauteur calculée", value: `${fmtFr(statsGlobales.junctionProfondeur, 2)} m`, color: "#22d3ee", icon: "↕" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
                   <span className="text-xl">{item.icon}</span>
@@ -459,9 +457,6 @@ export default function Navigation() {
                 </p>
                 <p className="font-display font-700 text-2xl" style={{ color: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f59e0b" }}>
                   {navOf(statsGlobales.junctionProfondeur) === "navigable" ? "🟢 NAVIGATION FAVORABLE" : navOf(statsGlobales.junctionProfondeur) === "vigilance" ? "🟡 VIGILANCE" : "🔴 NON NAVIGABLE"}
-                </p>
-                <p className="text-[11px] mt-1" style={{ color: "rgba(148,163,184,0.6)" }}>
-                  {FORMULE_PROFONDEUR}
                 </p>
               </div>
             </div>

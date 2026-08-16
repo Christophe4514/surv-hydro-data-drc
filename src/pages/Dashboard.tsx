@@ -62,12 +62,12 @@ export default function Dashboard({ onNavigate }: Props) {
       sub: "Total à la confluence",
     },
     {
-      label: "Profondeur",
+      label: "Hauteur",
       value: formatDepth(j.junctionProfondeur, 2),
       variation: `seuil ${formatDepth(seuils.navigable, 1)}`,
       varPos: j.junctionProfondeur >= seuils.navigable,
       status: j.junctionProfondeur >= seuils.navigable ? "normal" : "alerte",
-      sub: "H = (Q / 45,5)^(3/5)",
+      sub: "Jonction",
     },
     {
       label: "Navigation",
@@ -163,9 +163,9 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="rounded-xl p-5" style={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-display font-600 text-sm text-white">Profondeur à la jonction</p>
+              <p className="font-display font-600 text-sm text-white">Hauteur à la jonction</p>
               <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
-                Calculée depuis Qsim · H = (Q / 45,5)^(3/5)
+                Calculée depuis Qsim
               </p>
             </div>
             <div className="flex gap-1.5">
@@ -199,7 +199,7 @@ export default function Dashboard({ onNavigate }: Props) {
               <Tooltip contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }} />
               <ReferenceLine y={seuils.navigable} stroke="#10b981" strokeDasharray="4 3" label={{ value: formatDepth(seuils.navigable, 1), position: "right", fontSize: 9, fill: "#10b981" }} />
               <ReferenceLine y={seuils.etage} stroke="#ef4444" strokeDasharray="4 3" label={{ value: formatDepth(seuils.etage, 1), position: "right", fontSize: 9, fill: "#ef4444" }} />
-              <Area type="monotone" dataKey="profondeur" stroke="#06b6d4" strokeWidth={2} fill="url(#niveauGrad)" dot={false} />
+              <Area type="monotone" dataKey="profondeur" stroke="#06b6d4" strokeWidth={2} fill="url(#niveauGrad)" dot={false} name="Hauteur (m)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -360,7 +360,7 @@ export default function Dashboard({ onNavigate }: Props) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["Station", "Bassin", "Débit (m³/s)", "Profondeur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
+                {["Station", "Bassin", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
                   <th key={h} className="py-2 px-3 text-left font-mono font-500 text-[10px] uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
                     {h}
                   </th>

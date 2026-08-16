@@ -52,6 +52,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html[data-theme="dim"] body {
+  background-color: #152a45;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -122,4 +126,24 @@ body {
 
 .lubi-map .leaflet-tooltip-right::before {
   border-right-color: #071223;
+}
+
+.lubi-port-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.lubi-port-star {
+  display: block;
+  text-align: center;
+  font-size: 20px;
+  line-height: 22px;
+  color: #f8fafc;
+  text-shadow: 0 1px 2px #071223, 0 0 8px rgba(34, 211, 238, 0.55);
+}
+
+.lubi-port-star.is-selected {
+  font-size: 24px;
+  line-height: 26px;
+  color: #22d3ee;
 }

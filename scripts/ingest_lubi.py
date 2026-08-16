@@ -12,6 +12,8 @@ import shapefile
 ROOT = Path(__file__).resolve().parents[1]
 XLSX = ROOT / "Modele_Lubi1.xlsx"
 SHP = ROOT / "Shape Lubi" / "Lubi"
+PORT_SHP = ROOT / "Port Lubi" / "PORT"
+PORT_CSV = ROOT / "Port Lubi" / "port.csv"
 OUT = ROOT / "src" / "data" / "generated"
 
 # Manning-style rating used in profondeur-calc:
@@ -162,6 +164,46 @@ def load_catchments() -> dict:
     }
 
 
+def load_ports() -> list[dict]:
+    aliases: dict[int, str] = {}
+    if PORT_CSV.exists():
+        import csv
+
+        with PORT_CSV.open(encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f):
+                try:
+                    aliases[int(row["FID"])] = str(row["port_nom"]).strip()
+                except (KeyError, ValueError):
+                    continue
+
+    sf = shapefile.Reader(str(PORT_SHP))
+    ports = []
+    for i, (rec, shp) in enumerate(zip(sf.records(), sf.shapes())):
+        if not shp.points:
+            continue
+        data = rec.as_dict()
+        name = str(data.get("Name") or "").strip()
+        lon, lat = (float(shp.points[0][0]), float(shp.points[0][1]))
+        is_exutoire = "TSHANGABENI" in name.upper()
+        elev = data.get("Elev_MEAN")
+        ports.append(
+            {
+                "id": f"port-{i + 1}",
+                "code": f"PORT-00{i + 1}",
+                "nom": aliases.get(i, name),
+                "nomCourt": name,
+                "role": "exutoire" if is_exutoire else "port",
+                "latitude": round(lat, 5),
+                "longitude": round(lon, 5),
+                "bassin": str(data.get("Name_1") or "").strip(),
+                "territoire": str(data.get("Territoire") or "").strip(),
+                "catchCode": str(data.get("catch_code") or "").strip(),
+                "altitudeM": round(float(elev), 0) if elev not in (None, "") else None,
+            }
+        )
+    return ports
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
 
@@ -193,6 +235,7 @@ def main() -> None:
     station_nav = {code: [nav_from_h(h) for h in hs] for code, hs in station_h.items()}
 
     catchments = load_catchments()
+    ports = load_ports()
     meta_by_name = catchments["stationsMeta"]
 
     last_i = len(dates_iso) - 1
@@ -337,6 +380,7 @@ def main() -> None:
         "zonesNonNavigables": non_count,
         "bbox": catchments["bbox"],
         "stations": stations,
+        "ports": ports,
         "monthlyAverages": monthly,
         "navigableByMonth": nav_months,
         "navigableByYear": years,
@@ -363,6 +407,8 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+
+    (OUT / "ports.json").write_text(json.dumps(ports, ensure_ascii=False), encoding="utf-8")
 
     print("wrote", OUT)
     print("days", len(dates_iso), "from", dates_iso[0], "to", dates_iso[-1])

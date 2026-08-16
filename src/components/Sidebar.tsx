@@ -1,5 +1,6 @@
 import type { PageId } from "../App";
 import { alertes } from "../data/lubiData";
+import { useSettings } from "../context/SettingsContext";
 
 interface NavItem {
   id: PageId;
@@ -27,6 +28,9 @@ interface Props {
 }
 
 export default function Sidebar({ currentPage, onNavigate, open }: Props) {
+  const { alertEnabled, settings } = useSettings();
+  const panel = settings.theme === "dim" ? "#102038" : "#071223";
+  const nAlertes = alertes.filter((a) => a.statut === "active" && alertEnabled(a.gravite)).length;
   return (
     <aside
       className={`
@@ -35,7 +39,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
         transition-transform duration-200
         ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
-      style={{ background: "#071223", borderRight: "1px solid rgba(34,211,238,0.1)" }}
+      style={{ background: panel, borderRight: "1px solid rgba(34,211,238,0.1)" }}
     >
       <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(34,211,238,0.1)" }}>
         <div className="flex items-center gap-2.5 mb-1">
@@ -92,7 +96,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
                     className="ml-auto text-[10px] font-mono font-600 px-1.5 py-0.5 rounded-full"
                     style={{ background: "#ef4444", color: "white" }}
                   >
-                    {alertes.filter((a) => a.statut === "active").length}
+                    {nAlertes}
                   </span>
                 )}
               </button>

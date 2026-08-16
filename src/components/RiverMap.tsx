@@ -1,8 +1,10 @@
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, LayersControl, useMap } from "react-leaflet";
+import L from "leaflet";
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Tooltip, LayersControl, useMap } from "react-leaflet";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import "leaflet/dist/leaflet.css";
-import { stations, catchments, exutoire, type Station, type CatchmentFeature } from "../data/lubiData";
+import { stations, catchments, ports, type Station, type Port, type CatchmentFeature } from "../data/lubiData";
+import { useSettings } from "../context/SettingsContext";
 
 const statusColors: Record<string, string> = {
   normal: "#10b981",
@@ -17,19 +19,33 @@ const navFill: Record<string, string> = {
   "non-navigable": "#ef4444",
 };
 
+const starIcon = L.divIcon({
+  className: "lubi-port-icon",
+  html: '<span class="lubi-port-star">★</span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
+
+const starIconSelected = L.divIcon({
+  className: "lubi-port-icon",
+  html: '<span class="lubi-port-star is-selected">★</span>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+});
+
 export interface MapFilters {
   stations: boolean;
   navigables: boolean;
   nonNavigables: boolean;
-  exutoire: boolean;
+  ports: boolean;
 }
 
 interface Props {
   onStationClick?: (s: Station) => void;
-  onExutoireClick?: () => void;
+  onPortClick?: (p: Port) => void;
   compact?: boolean;
   selectedCode?: string | null;
-  selectedExutoire?: boolean;
+  selectedPortId?: string | null;
   filters?: MapFilters;
 }
 
@@ -49,33 +65,35 @@ function FitBounds() {
 
 function FlyToSelected({
   station,
-  toExutoire,
+  port,
 }: {
   station: Station | undefined;
-  toExutoire: boolean;
+  port: Port | undefined;
 }) {
   const map = useMap();
   useEffect(() => {
-    if (toExutoire) {
-      map.flyTo([exutoire.latitude, exutoire.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 });
+    if (port) {
+      map.flyTo([port.latitude, port.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 });
       return;
     }
     if (!station) return;
     map.flyTo([station.latitude, station.longitude], Math.max(map.getZoom(), 10), { duration: 0.55 });
-  }, [station, toExutoire, map]);
+  }, [station, port, map]);
   return null;
 }
 
 export default function RiverMap({
   onStationClick,
-  onExutoireClick,
+  onPortClick,
   compact = false,
   selectedCode = null,
-  selectedExutoire = false,
-  filters = { stations: true, navigables: true, nonNavigables: true, exutoire: true },
+  selectedPortId = null,
+  filters = { stations: true, navigables: true, nonNavigables: true, ports: true },
 }: Props) {
+  const { formatDepth, seuils } = useSettings();
   const byCode = useMemo(() => new Map(stations.map((s) => [s.code, s])), []);
   const selected = stations.find((s) => s.code === selectedCode);
+  const selectedPort = ports.find((p) => p.id === selectedPortId);
 
   const geojson = useMemo<FeatureCollection>(() => {
     const features = catchments.features.filter((f: CatchmentFeature) => {
@@ -127,18 +145,18 @@ export default function RiverMap({
         style={{ height: "100%", width: "100%", background: "#071223" }}
       >
         <FitBounds />
-        <FlyToSelected station={selected} toExutoire={selectedExutoire} />
+        <FlyToSelected station={selected} port={selectedPort} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan sombre">
             <TileLayer
-              attribution='&copy; OSM &copy; CARTO'
+              attribution="&copy; OSM &copy; CARTO"
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Plan">
             <TileLayer
-              attribution='&copy; OpenStreetMap'
+              attribution="&copy; OpenStreetMap"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               maxZoom={19}
             />
@@ -180,33 +198,46 @@ export default function RiverMap({
           </CircleMarker>
         ))}
 
-        {filters.exutoire && (
-          <>
-            <CircleMarker
-              center={[exutoire.latitude, exutoire.longitude]}
-              radius={selectedExutoire ? 18 : 16}
-              pathOptions={{ color: "#ef4444", weight: 0, fillColor: "#ef4444", fillOpacity: 0.22 }}
-              eventHandlers={{ click: () => onExutoireClick?.() }}
-            />
-            <CircleMarker
-              center={[exutoire.latitude, exutoire.longitude]}
-              radius={selectedExutoire ? 9 : 8}
-              pathOptions={{
-                color: "#ffffff",
-                weight: 2.5,
-                fillColor: "#ef4444",
-                fillOpacity: 1,
-              }}
-              eventHandlers={{ click: () => onExutoireClick?.() }}
-            >
-              <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent={!compact}>
-                <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700 }}>
-                  Exutoire · Port Tshangabeni
-                </span>
-              </Tooltip>
-            </CircleMarker>
-          </>
-        )}
+        {filters.ports &&
+          ports.map((p) => {
+            const selectedHere = p.id === selectedPortId;
+            if (p.role === "exutoire") {
+              return (
+                <CircleMarker
+                  key={p.id}
+                  center={[p.latitude, p.longitude]}
+                  radius={selectedHere ? 9 : 8}
+                  pathOptions={{
+                    color: "#ffffff",
+                    weight: 2.5,
+                    fillColor: "#ef4444",
+                    fillOpacity: 1,
+                  }}
+                  eventHandlers={{ click: () => onPortClick?.(p) }}
+                >
+                  <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent={!compact}>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700 }}>
+                      Exutoire · {p.nom}
+                    </span>
+                  </Tooltip>
+                </CircleMarker>
+              );
+            }
+            return (
+              <Marker
+                key={p.id}
+                position={[p.latitude, p.longitude]}
+                icon={selectedHere ? starIconSelected : starIcon}
+                eventHandlers={{ click: () => onPortClick?.(p) }}
+              >
+                <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent={!compact}>
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 600 }}>
+                    {p.nom}
+                  </span>
+                </Tooltip>
+              </Marker>
+            );
+          })}
       </MapContainer>
 
       <div
@@ -214,16 +245,26 @@ export default function RiverMap({
         style={{ background: "rgba(7,18,35,0.92)", border: "1px solid rgba(34,211,238,0.15)" }}
       >
         {[
-          { color: "#10b981", label: "Navigable (≥ 1,5 m)" },
-          { color: "#f59e0b", label: "Vigilance (1,2–1,5 m)" },
-          { color: "#ef4444", label: "Non navigable (< 1,2 m)" },
+          { color: "#10b981", label: `Navigable (≥ ${formatDepth(seuils.navigable, 1)})` },
+          { color: "#f59e0b", label: `Vigilance (${formatDepth(seuils.etage, 1)}–${formatDepth(seuils.navigable, 1)})` },
+          { color: "#ef4444", label: `Non navigable (< ${formatDepth(seuils.etage, 1)})` },
           { color: "#ef4444", label: "Exutoire — Port Tshangabeni", ring: true },
+          { color: "#f8fafc", label: "Port fluvial (Ndomba, Lubunga)", star: true },
         ].map((l) => (
           <div key={l.label} className="flex items-center gap-2">
             <div
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ background: l.color, boxShadow: l.ring ? "0 0 0 1.5px #fff" : undefined }}
-            />
+              className="w-2.5 h-2.5 flex items-center justify-center flex-shrink-0"
+              style={{
+                color: l.star ? "#f8fafc" : undefined,
+                fontSize: l.star ? 12 : undefined,
+                lineHeight: 1,
+                background: l.star ? undefined : l.color,
+                borderRadius: l.star ? undefined : 999,
+                boxShadow: l.ring ? "0 0 0 1.5px #fff" : undefined,
+              }}
+            >
+              {l.star ? "★" : null}
+            </div>
             <span className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.85)" }}>{l.label}</span>
           </div>
         ))}

@@ -1,6 +1,7 @@
 import metaJson from "./generated/meta.json";
 import dailyJson from "./generated/daily.json";
 import catchmentsJson from "./generated/catchments.json";
+import portsJson from "./generated/ports.json";
 
 export type StatusLevel = "normal" | "vigilance" | "alerte" | "critique";
 export type NavStatus = "navigable" | "vigilance" | "non-navigable";
@@ -119,24 +120,21 @@ export const catchments = catchmentsJson as {
   features: CatchmentFeature[];
 };
 
-function northernmostVertex(features: CatchmentFeature[]): { longitude: number; latitude: number } {
-  let longitude = 0;
-  let latitude = -90;
-  for (const f of features) {
-    for (const ring of f.geometry.coordinates) {
-      for (const [lon, lat] of ring) {
-        if (lat > latitude) {
-          latitude = lat;
-          longitude = lon;
-        }
-      }
-    }
-  }
-  return {
-    longitude: Math.round(longitude * 1e5) / 1e5,
-    latitude: Math.round(latitude * 1e5) / 1e5,
-  };
+export interface Port {
+  id: string;
+  code: string;
+  nom: string;
+  nomCourt: string;
+  role: "exutoire" | "port";
+  latitude: number;
+  longitude: number;
+  bassin: string;
+  territoire: string;
+  catchCode: string;
+  altitudeM: number | null;
 }
+
+export const ports: Port[] = portsJson as Port[];
 
 export interface Exutoire {
   id: string;
@@ -152,13 +150,16 @@ export interface Exutoire {
   derniereMesure: string;
 }
 
-/** Pourpoint du bassin (pointe nord) — confluence Lubi / Sankuru. */
+const portTshangabeni = ports.find((p) => p.role === "exutoire") ?? ports[ports.length - 1];
+
+/** Exutoire du bassin — Port Tshangabeni (shapefile Port Lubi). */
 export const exutoire: Exutoire = {
-  id: "exutoire",
-  code: "EXU-001",
-  nom: "Port Tshangabeni",
+  id: portTshangabeni?.id ?? "exutoire",
+  code: portTshangabeni?.code ?? "PORT-003",
+  nom: portTshangabeni?.nom ?? "Port TSHANGABENI",
   zone: "Exutoire — confluence Lubi / Sankuru",
-  ...northernmostVertex(catchments.features),
+  latitude: portTshangabeni?.latitude ?? -4.98776,
+  longitude: portTshangabeni?.longitude ?? 23.43056,
   debit: meta.junctionLast as number,
   profondeur: meta.profondeurLast as number,
   navigation: meta.navigationLast as NavStatus,
@@ -411,6 +412,13 @@ export const dailyStationQ = daily.stations;
 export const dailyStationH = daily.stationProfondeur;
 export const dailyStationNav = daily.stationNavigation;
 
+export const Q_PER_H = 45.5;
 export const Q_SEUIL_ETIAGE = 61.7;
 export const Q_SEUIL_PLUIE = 70.5;
 export const Q_SEUIL_NAV = 89.4;
+
+/** Q = 45.5 × H^(5/3) */
+export function qFromH(h: number): number {
+  if (!Number.isFinite(h) || h <= 0) return 0;
+  return Math.round(Q_PER_H * h ** (5 / 3) * 10) / 10;
+}

@@ -14,7 +14,9 @@ XLSX = ROOT / "Modele_Lubi1.xlsx"
 SHP = ROOT / "Shape Lubi" / "Lubi"
 PORT_SHP = ROOT / "Port Lubi" / "PORT"
 PORT_CSV = ROOT / "Port Lubi" / "port.csv"
+PROF_TIF = ROOT / "Profondeur" / "Profondeur_class.tif"
 OUT = ROOT / "src" / "data" / "generated"
+PUBLIC = ROOT / "public"
 
 # Manning-style rating used in profondeur-calc:
 # Q = 28 * 65 * H^(5/3) * sqrt(0.000625)
@@ -208,6 +210,51 @@ def load_debit_classe() -> dict:
     }
 
 
+def export_profondeur_overlay() -> dict | None:
+    """GeoTIFF classé Profondeur/Profondeur_class.tif → PNG transparent + emprise WGS84."""
+    if not PROF_TIF.exists():
+        return None
+
+    import numpy as np
+    from PIL import Image
+
+    im = Image.open(PROF_TIF)
+    arr = np.array(im)
+    height, width = arr.shape
+    tags = getattr(im, "tag_v2", {}) or {}
+    scale = tags.get(33550)
+    tie = tags.get(33922)
+    px = float(scale[0]) if scale else 0.0000358756
+    west = float(tie[3]) if tie else 23.381396157
+    north = float(tie[4]) if tie else -5.23721370568
+    east = west + width * px
+    south = north - height * px
+
+    step = 3
+    small = arr[::step, ::step]
+    rgba = np.zeros((small.shape[0], small.shape[1], 4), dtype=np.uint8)
+    # Valeurs 85 / 170 / 255 = classes 1 / 2 / 3 du VAT ArcGIS
+    rgba[small == 85] = (239, 68, 68, 210)
+    rgba[small == 170] = (245, 158, 11, 210)
+    rgba[small == 255] = (16, 185, 129, 190)
+
+    PUBLIC.mkdir(exist_ok=True)
+    out_png = PUBLIC / "profondeur-class.png"
+    Image.fromarray(rgba, "RGBA").save(out_png, optimize=True)
+
+    overlay = {
+        "url": "/profondeur-class.png",
+        "bounds": [[round(south, 6), round(west, 6)], [round(north, 6), round(east, 6)]],
+        "classes": [
+            {"value": 1, "label": "Hauteur faible", "color": "#ef4444"},
+            {"value": 2, "label": "Hauteur moyenne", "color": "#f59e0b"},
+            {"value": 3, "label": "Hauteur élevée", "color": "#10b981"},
+        ],
+    }
+    (OUT / "profondeurOverlay.json").write_text(json.dumps(overlay, ensure_ascii=False), encoding="utf-8")
+    return overlay
+
+
 def load_ports() -> list[dict]:
     aliases: dict[int, str] = {}
     if PORT_CSV.exists():
@@ -323,6 +370,7 @@ def main() -> None:
 
     # Courbe de débit classé (FDC) — Q vs % de dépassement
     debit_classe = load_debit_classe()
+    profondeur_overlay = export_profondeur_overlay()
 
     # Qmoyennes — 12 monthly climatology values
     qm = pd.read_excel(XLSX, sheet_name="Qmoyennes", header=None)
@@ -457,6 +505,8 @@ def main() -> None:
 
     (OUT / "ports.json").write_text(json.dumps(ports, ensure_ascii=False), encoding="utf-8")
     (OUT / "debitClasse.json").write_text(json.dumps(debit_classe, ensure_ascii=False), encoding="utf-8")
+    if profondeur_overlay:
+        print("profondeur overlay", PUBLIC / "profondeur-class.png")
 
     print("wrote", OUT)
     print("days", len(dates_iso), "from", dates_iso[0], "to", dates_iso[-1])

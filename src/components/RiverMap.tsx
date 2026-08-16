@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Tooltip, LayersControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Tooltip, LayersControl, ImageOverlay, useMap } from "react-leaflet";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { type Station, type Port, type CatchmentFeature } from "../data/lubiData";
@@ -39,6 +39,7 @@ export interface MapFilters {
   navigables: boolean;
   nonNavigables: boolean;
   ports: boolean;
+  hauteur: boolean;
 }
 
 interface Props {
@@ -84,11 +85,11 @@ export default function RiverMap({
   compact = false,
   selectedCode = null,
   selectedPortId = null,
-  filters = { stations: true, navigables: true, nonNavigables: true, ports: true },
+  filters = { stations: true, navigables: true, nonNavigables: true, ports: true, hauteur: true },
 }: Props) {
   const { formatDepth, seuils } = useSettings();
   const { bundle } = useHydroSource();
-  const { stations, catchments, ports, mapCenter, hasCatchments, riverName } = bundle;
+  const { stations, catchments, ports, mapCenter, hasCatchments, riverName, profondeurOverlay } = bundle;
   const [xmin, ymin, xmax, ymax] = catchments.bbox;
   const bounds: [[number, number], [number, number]] = [
     [ymin, xmin],
@@ -183,6 +184,15 @@ export default function RiverMap({
           />
         )}
 
+        {filters.hauteur && profondeurOverlay && (
+          <ImageOverlay
+            url={profondeurOverlay.url}
+            bounds={profondeurOverlay.bounds}
+            opacity={compact ? 0.7 : 0.82}
+            zIndex={350}
+          />
+        )}
+
         {!hasCatchments && (
           <CircleMarker
             center={[mapCenter.lat, mapCenter.lon]}
@@ -274,6 +284,14 @@ export default function RiverMap({
                 { color: "#f8fafc", label: "Port fluvial (Ndomba, Lubunga)", ring: false, star: true },
               ]
             : [{ color: "#22d3ee", label: `Point de mesure — ${riverName}`, ring: false, star: false }]),
+          ...(filters.hauteur && profondeurOverlay
+            ? profondeurOverlay.classes.map((c) => ({
+                color: c.color,
+                label: `Raster · ${c.label}`,
+                ring: false,
+                star: false,
+              }))
+            : []),
         ].map((l) => (
           <div key={l.label} className="flex items-center gap-2">
             <div

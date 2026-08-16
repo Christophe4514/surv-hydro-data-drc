@@ -2,7 +2,19 @@
 
 Application web de surveillance hydrologique de la rivière Lubi (RDC) : niveaux, débits, navigation, alertes et stations de mesure.
 
-Prototype UI issu du fichier Figma Make [Navigation Calendar Page](https://www.figma.com/make/raswCf2Q6llnBcl3AXRu6H/Navigation-Calendar-Page). Les données affichées sont des données de démonstration.
+Prototype UI + données réelles `Modele_Lubi1.xlsx` (Qsim 2009–2022) et bassins `Shape Lubi` (WGS84).
+
+## Données
+
+| Source | Usage |
+| --- | --- |
+| `Qsim_DEC2022` | Date, heure, débits Lubi(2), Lubi(1), Lukeshi, Bi(A), Lupaka, Junction |
+| `Jour_Navigable (3)` | Jours navigables par mois (tirants 1,5 / 1,3 / 1,2 m) |
+| `Qmoyennes` | Débits moyens mensuels pour les graphiques |
+| `profondeur-calc` | `Q = 28×65×H^(5/3)×√0,000625` → `H = (Q/45,5)^(3/5)` |
+| `Shape Lubi/` | Polygones des 5 sous-bassins (géoréférencement WGS84) |
+
+Régénérer les JSON : `npm run ingest` (Python + pandas + pyshp + openpyxl).
 
 ## Lancer en local
 

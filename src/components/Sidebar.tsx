@@ -1,4 +1,6 @@
 import type { PageId } from "../App";
+import { alertes } from "../data/lubiData";
+import { useSettings } from "../context/SettingsContext";
 
 interface NavItem {
   id: PageId;
@@ -26,6 +28,9 @@ interface Props {
 }
 
 export default function Sidebar({ currentPage, onNavigate, open }: Props) {
+  const { alertEnabled, settings } = useSettings();
+  const panel = settings.theme === "dim" ? "#102038" : "#071223";
+  const nAlertes = alertes.filter((a) => a.statut === "active" && alertEnabled(a.gravite)).length;
   return (
     <aside
       className={`
@@ -34,7 +39,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
         transition-transform duration-200
         ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
-      style={{ background: "#071223", borderRight: "1px solid rgba(34,211,238,0.1)" }}
+      style={{ background: panel, borderRight: "1px solid rgba(34,211,238,0.1)" }}
     >
       <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(34,211,238,0.1)" }}>
         <div className="flex items-center gap-2.5 mb-1">
@@ -91,7 +96,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
                     className="ml-auto text-[10px] font-mono font-600 px-1.5 py-0.5 rounded-full"
                     style={{ background: "#ef4444", color: "white" }}
                   >
-                    4
+                    {nAlertes}
                   </span>
                 )}
               </button>
@@ -104,11 +109,11 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
         <div className="flex items-center gap-2 mb-1">
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#10b981" }} />
           <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.6)" }}>
-            Source: données Excel
+            Source: Modele_Lubi1.xlsx
           </p>
         </div>
         <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.4)" }}>
-          v1.0.0 — démo
+          Qsim 2009–2022
         </p>
       </div>
     </aside>

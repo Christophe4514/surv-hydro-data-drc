@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { calendrierNavigation, stations, type NavStatus } from "../data/lubiData";
+import {
+  stations, type NavStatus, getCalendarDays, navigableByMonth, navigableByYear,
+  statsGlobales, LAST_DATE, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_PLUIE,
+} from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
+import { useSettings } from "../context/SettingsContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -24,8 +28,9 @@ type TabId = "conditions" | "calendrier" | "logique";
 
 export default function Navigation() {
   const [tab, setTab] = useState<TabId>("conditions");
-  const [calMonth, setCalMonth] = useState(7);
-  const [calYear] = useState(2026);
+  const [calMonth, setCalMonth] = useState(11);
+  const { seuils, qNavigable, qEtiage, formatDepth, navOf } = useSettings();
+  const [calYear, setCalYear] = useState(2022);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
   const firstDay = new Date(calYear, calMonth, 1);
@@ -33,14 +38,9 @@ export default function Navigation() {
   const startDow = (firstDay.getDay() + 6) % 7;
   const daysInMonth = lastDay.getDate();
 
-  const calData = new Map(
-    calendrierNavigation
-      .filter((d) => {
-        const dt = new Date(d.date);
-        return dt.getFullYear() === calYear && dt.getMonth() === calMonth;
-      })
-      .map((d) => [d.date, d])
-  );
+  const calData = new Map(getCalendarDays(calYear, calMonth).map((d) => [d.date, d]));
+  const excelMonth = navigableByMonth.find((m) => m.year === calYear && m.month === calMonth + 1);
+  const excelYear = navigableByYear.find((y) => y.year === calYear);
 
   const monthDays = Array.from(calData.values());
   const navCount = monthDays.filter((d) => d.status === "navigable").length;
@@ -53,21 +53,24 @@ export default function Navigation() {
     <div className="p-4 md:p-6 space-y-5 max-w-screen-xl mx-auto">
       <div
         className="rounded-xl px-5 py-4"
-        style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)" }}
+        style={{
+          background: statsGlobales.zonesNonNavigables > 0 ? "rgba(249,115,22,0.08)" : "rgba(16,185,129,0.07)",
+          border: statsGlobales.zonesNonNavigables > 0 ? "1px solid rgba(249,115,22,0.25)" : "1px solid rgba(16,185,129,0.2)",
+        }}
       >
-        <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "rgba(16,185,129,0.6)" }}>
-          État global de navigation — Rivière Lubi
+        <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "rgba(34,211,238,0.6)" }}>
+          État global de navigation — Jonction Lubi · {LAST_DATE}
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: "#10b981" }} />
-              <h2 className="font-display font-700 text-2xl" style={{ color: "#10b981" }}>
-                NAVIGATION : PARTIELLEMENT FAVORABLE
+              <div className="w-3 h-3 rounded-full" style={{ background: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f97316" }} />
+              <h2 className="font-display font-700 text-2xl" style={{ color: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f97316" }}>
+                JONCTION : {navOf(statsGlobales.junctionProfondeur) === "navigable" ? "NAVIGABLE" : navOf(statsGlobales.junctionProfondeur) === "vigilance" ? "VIGILANCE" : "NON NAVIGABLE"}
               </h2>
             </div>
             <p className="text-sm mt-1" style={{ color: "rgba(226,232,240,0.6)" }}>
-              2 zones navigables · 1 zone en vigilance · 2 zones non navigables (Zone Sud en sécheresse)
+              {statsGlobales.zonesNavigables} bassin(s) navigable(s) · {statsGlobales.zonesVigilance} en vigilance · {statsGlobales.zonesNonNavigables} non navigable(s)
             </p>
           </div>
         </div>
@@ -75,12 +78,12 @@ export default function Navigation() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Profondeur moy.", value: "2,60 m", icon: "↕", color: "#22d3ee" },
-          { label: "Niveau moyen", value: "3,06 m", icon: "〜", color: "#22d3ee" },
-          { label: "Débit moyen", value: "1 292 m³/s", icon: "⇌", color: "#22d3ee" },
-          { label: "Zones navigables", value: "2 / 5", icon: "⛵", color: "#10b981" },
-          { label: "Zones vigilance", value: "1 / 5", icon: "⚠", color: "#f59e0b" },
-          { label: "Non navigables", value: "2 / 5", icon: "🚫", color: "#ef4444" },
+          { label: "Profondeur jonction", value: formatDepth(statsGlobales.junctionProfondeur, 2), color: "#22d3ee" },
+          { label: "Débit jonction", value: `${fmtFr(statsGlobales.junctionDebit, 1)} m³/s`, color: "#22d3ee" },
+          { label: `Tirant ${formatDepth(seuils.navigable, 1)}`, value: `${qNavigable} m³/s`, color: "#10b981" },
+          { label: "Bassins navigables", value: `${statsGlobales.zonesNavigables} / 5`, color: "#10b981" },
+          { label: "Vigilance", value: `${statsGlobales.zonesVigilance} / 5`, color: "#f59e0b" },
+          { label: "Non navigables", value: `${statsGlobales.zonesNonNavigables} / 5`, color: "#ef4444" },
         ].map((k) => (
           <div key={k.label} className="rounded-xl p-4" style={card}>
             <p className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: "rgba(148,163,184,0.5)" }}>
@@ -125,7 +128,7 @@ export default function Navigation() {
                     <div>
                       <p className="font-mono font-700 text-base" style={{ color: "#22d3ee" }}>{s.code}</p>
                       <p className="text-sm font-600 text-white">{s.nom}</p>
-                      <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>{s.zone} · km {s.km}</p>
+                      <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>{s.zone} · {fmtFr(s.areaKm2, 0)} km²</p>
                     </div>
                     <div
                       className="px-4 py-2 rounded-xl text-center"
@@ -164,7 +167,7 @@ export default function Navigation() {
                         Profondeur de navigation
                       </p>
                       <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.5)" }}>
-                        Seuil min: 2,0 m
+                        Seuil min: {formatDepth(seuils.navigable, 1)} (étiage {formatDepth(seuils.etage, 1)})
                       </p>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -172,7 +175,7 @@ export default function Navigation() {
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${Math.min(100, (s.profondeur / 5) * 100)}%`,
-                          background: s.profondeur >= 2.0 ? "#10b981" : s.profondeur >= 1.5 ? "#f59e0b" : "#ef4444",
+                          background: navOf(s.profondeur) === "navigable" ? "#10b981" : navOf(s.profondeur) === "vigilance" ? "#f59e0b" : "#ef4444",
                         }}
                       />
                     </div>
@@ -187,12 +190,14 @@ export default function Navigation() {
       {tab === "calendrier" && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 rounded-xl p-5" style={card}>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-3">
               <button
-                onClick={() => setCalMonth((m) => Math.max(0, m - 1))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                onClick={() => {
+                  if (calMonth === 0) { setCalYear((y) => Math.max(2009, y - 1)); setCalMonth(11); }
+                  else setCalMonth((m) => m - 1);
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: "rgba(255,255,255,0.05)", color: "#94a3b8" }}
-                disabled={calMonth === 0}
               >
                 ‹
               </button>
@@ -201,17 +206,34 @@ export default function Navigation() {
                   {monthNames[calMonth]} {calYear}
                 </p>
                 <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
-                  Calendrier de navigation — Rivière Lubi
+                  Jours navigables selon la profondeur calculée
                 </p>
               </div>
               <button
-                onClick={() => setCalMonth((m) => Math.min(7, m + 1))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                onClick={() => {
+                  if (calMonth === 11) { setCalYear((y) => Math.min(2022, y + 1)); setCalMonth(0); }
+                  else setCalMonth((m) => m + 1);
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: "rgba(255,255,255,0.05)", color: "#94a3b8" }}
-                disabled={calMonth === 7}
               >
                 ›
               </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-1 mb-4">
+              {Array.from({ length: 14 }, (_, i) => 2009 + i).map((y) => (
+                <button
+                  key={y}
+                  onClick={() => setCalYear(y)}
+                  className="px-2 py-0.5 rounded text-[10px] font-mono"
+                  style={{
+                    background: calYear === y ? "rgba(34,211,238,0.2)" : "transparent",
+                    color: calYear === y ? "#22d3ee" : "rgba(148,163,184,0.5)",
+                  }}
+                >
+                  {y}
+                </button>
+              ))}
             </div>
 
             <div className="grid grid-cols-7 gap-1 mb-1">
@@ -233,8 +255,8 @@ export default function Navigation() {
                 const day = i + 1;
                 const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                 const data = calData.get(dateStr);
-                const isToday = dateStr === "2026-08-16";
-                const isFuture = new Date(dateStr) > new Date("2026-08-16");
+                const isToday = dateStr === LAST_DATE;
+                const isFuture = dateStr > LAST_DATE;
                 const status = data?.status ?? "navigable";
                 const cfg = navColors[status];
 
@@ -368,23 +390,28 @@ export default function Navigation() {
             </div>
 
             <div className="rounded-xl p-5" style={card}>
-              <p className="font-display font-600 text-sm text-white mb-3">Bathymétrie</p>
+              <p className="font-display font-600 text-sm text-white mb-3">Jour_Navigable (Excel)</p>
+              <p className="text-[10px] mb-3" style={{ color: "rgba(148,163,184,0.5)" }}>
+                Nombre de jours navigables du mois selon le tirant
+              </p>
               {[
-                { label: "Très faible (< 1 m)", width: 10, color: "#ef4444" },
-                { label: "Faible (1–2 m)", width: 30, color: "#f97316" },
-                { label: "Moyenne (2–3 m)", width: 40, color: "#f59e0b" },
-                { label: "Importante (> 3 m)", width: 20, color: "#10b981" },
+                { label: "Tirant 1,5 m", value: excelMonth?.jours15 ?? 0, color: "#10b981" },
+                { label: "Tirant 1,3 m", value: excelMonth?.jours13 ?? 0, color: "#f59e0b" },
+                { label: "Tirant 1,2 m (étiage)", value: excelMonth?.jours12 ?? 0, color: "#22d3ee" },
               ].map((b) => (
                 <div key={b.label} className="mb-2.5">
                   <div className="flex justify-between mb-1">
                     <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.6)" }}>{b.label}</span>
-                    <span className="text-[10px] font-mono" style={{ color: b.color }}>{b.width}%</span>
+                    <span className="text-[10px] font-mono" style={{ color: b.color }}>{b.value} j / {daysInMonth}</span>
                   </div>
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-                    <div className="h-full rounded-full" style={{ width: `${b.width}%`, background: b.color }} />
+                    <div className="h-full rounded-full" style={{ width: `${(b.value / daysInMonth) * 100}%`, background: b.color }} />
                   </div>
                 </div>
               ))}
+              <p className="text-[11px] font-mono mt-3" style={{ color: "rgba(148,163,184,0.5)" }}>
+                {calYear} : {excelYear?.joursNavigables ?? "—"} jours navigables / an
+              </p>
             </div>
           </div>
         </div>
@@ -396,10 +423,10 @@ export default function Navigation() {
             <p className="font-display font-600 text-base text-white mb-4">Logique de détermination de la navigation</p>
             <div className="space-y-3">
               {[
-                { label: "Niveau d'eau", value: "3,20 m", color: "#22d3ee", icon: "〜" },
-                { label: "Profondeur", value: "2,80 m", color: "#22d3ee", icon: "↕" },
-                { label: "Débit", value: "1 250 m³/s", color: "#22d3ee", icon: "⇌" },
-                { label: "Bathymétrie", value: "Compatible", color: "#10b981", icon: "🗺" },
+                { label: "Débit jonction (Qsim)", value: `${fmtFr(statsGlobales.junctionDebit, 1)} m³/s`, color: "#22d3ee", icon: "⇌" },
+                { label: "Profondeur calculée", value: `${fmtFr(statsGlobales.junctionProfondeur, 2)} m`, color: "#22d3ee", icon: "↕" },
+                { label: "Formule", value: "H = (Q / 45,5)^(3/5)", color: "#94a3b8", icon: "ƒ" },
+                { label: "Q = 28×65×H^(5/3)×√0,000625", value: "profondeur-calc", color: "#10b981", icon: "🗺" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
                   <span className="text-xl">{item.icon}</span>
@@ -423,11 +450,11 @@ export default function Navigation() {
                 <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "#10b981" }}>
                   Résultat
                 </p>
-                <p className="font-display font-700 text-2xl" style={{ color: "#10b981" }}>
-                  🟢 NAVIGATION FAVORABLE
+                <p className="font-display font-700 text-2xl" style={{ color: navOf(statsGlobales.junctionProfondeur) === "navigable" ? "#10b981" : "#f59e0b" }}>
+                  {navOf(statsGlobales.junctionProfondeur) === "navigable" ? "🟢 NAVIGATION FAVORABLE" : navOf(statsGlobales.junctionProfondeur) === "vigilance" ? "🟡 VIGILANCE" : "🔴 NON NAVIGABLE"}
                 </p>
                 <p className="text-[11px] mt-1" style={{ color: "rgba(148,163,184,0.6)" }}>
-                  Toutes les conditions sont réunies pour la navigation
+                  {FORMULE_PROFONDEUR}
                 </p>
               </div>
             </div>
@@ -438,11 +465,10 @@ export default function Navigation() {
               <p className="font-display font-600 text-sm text-white mb-4">Seuils de navigabilité</p>
               <div className="space-y-2.5">
                 {[
-                  { label: "Profondeur minimale", value: "2,0 m", status: "Seuil de navigabilité" },
-                  { label: "Profondeur vigilance", value: "1,5 m", status: "Navigation déconseillée" },
-                  { label: "Profondeur critique", value: "< 1,0 m", status: "Navigation impossible" },
-                  { label: "Débit minimum", value: "500 m³/s", status: "Débit minimal requis" },
-                  { label: "Niveau minimum", value: "2,5 m", status: "Niveau navigable" },
+                  { label: "Tirant navigable", value: formatDepth(seuils.navigable, 1), status: `Q ≥ ${qNavigable} m³/s` },
+                  { label: "Tirant saison des pluies", value: formatDepth(seuils.pluie, 1), status: `Q ≥ ${Q_SEUIL_PLUIE} m³/s` },
+                  { label: "Tirant d'étiage", value: formatDepth(seuils.etage, 1), status: `Q ≥ ${qEtiage} m³/s` },
+                  { label: "Non navigable", value: `< ${formatDepth(seuils.etage, 1)}`, status: "Navigation impossible" },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
                     <div>

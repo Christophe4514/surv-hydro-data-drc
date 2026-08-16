@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { stations, type Station, historiqueData } from "../data/lubiData";
+import { stations, type Station, getStationSeries } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import type { PageId } from "../App";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
@@ -56,7 +56,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
   );
 
   const miniData = (code: string) =>
-    historiqueData.filter((d) => d.station === code).slice(-7).map((d) => ({ v: d.niveau }));
+    getStationSeries(code, 14).map((d) => ({ v: d.debit }));
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -208,17 +208,17 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
               { label: "Code", value: selected.code },
-              { label: "Zone", value: selected.zone },
+              { label: "Bassin", value: selected.nom },
               { label: "Latitude", value: selected.latitude.toFixed(4) },
               { label: "Longitude", value: selected.longitude.toFixed(4) },
-              { label: "Km depuis source", value: `${selected.km} km` },
+              { label: "Superficie", value: `${selected.areaKm2} km²` },
               { label: "Dernière mesure", value: selected.derniereMesure },
-              { label: "Niveau", value: `${selected.niveau} m` },
-              { label: "Débit", value: `${selected.debit} m³/s` },
               { label: "Profondeur", value: `${selected.profondeur} m` },
-              { label: "Vitesse courant", value: `${selected.vitesse} m/s` },
+              { label: "Débit Qsim", value: `${selected.debit} m³/s` },
+              { label: "Colonne Excel", value: selected.excelCol },
+              { label: "Code bassin", value: selected.catchCode },
               { label: "Navigation", value: selected.navigation },
-              { label: "Risque inondation", value: selected.risqueInondation },
+              { label: "Territoire", value: selected.zone },
             ].map((item) => (
               <div key={item.label} className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
                 <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>
@@ -234,10 +234,9 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
             </p>
             <div className="flex gap-3 flex-wrap">
               {[
-                { label: "Normal", value: selected.seuils.normal, color: "#10b981" },
-                { label: "Vigilance", value: selected.seuils.vigilance, color: "#f59e0b" },
-                { label: "Alerte", value: selected.seuils.alerte, color: "#f97316" },
-                { label: "Critique", value: selected.seuils.critique, color: "#ef4444" },
+                { label: "Étiage", value: selected.seuils.etage, color: "#ef4444" },
+                { label: "Saison des pluies", value: selected.seuils.pluie, color: "#f59e0b" },
+                { label: "Navigable", value: selected.seuils.navigable, color: "#10b981" },
               ].map((s) => (
                 <div key={s.label} className="px-3 py-2 rounded-lg" style={{ background: `${s.color}12`, border: `1px solid ${s.color}30` }}>
                   <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.6)" }}>{s.label}</p>

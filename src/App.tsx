@@ -10,6 +10,7 @@ import Historique from "./pages/Historique";
 import Stations from "./pages/Stations";
 import Donnees from "./pages/Donnees";
 import Parametres from "./pages/Parametres";
+import { useSettings } from "./context/SettingsContext";
 
 export type PageId =
   | "dashboard"
@@ -26,11 +27,20 @@ export default function App() {
   const [page, setPage] = useState<PageId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [time, setTime] = useState(new Date());
+  const { settings } = useSettings();
+  const bg = settings.theme === "dim" ? "#152a45" : "#0b1a31";
 
   useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 60000);
-    return () => clearInterval(t);
+    const clock = setInterval(() => setTime(new Date()), 60_000);
+    return () => clearInterval(clock);
   }, []);
+
+  useEffect(() => {
+    if (!settings.autoRefresh) return;
+    const ms = Number(settings.refreshInterval) * 60_000;
+    const t = setInterval(() => setTime(new Date()), ms);
+    return () => clearInterval(t);
+  }, [settings.autoRefresh, settings.refreshInterval]);
 
   const pages: Record<PageId, ReactNode> = {
     dashboard: <Dashboard onNavigate={setPage} />,
@@ -45,7 +55,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#0b1a31" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: bg }}>
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/60 lg:hidden"
@@ -68,8 +78,9 @@ export default function App() {
           page={page}
           time={time}
           onMenuToggle={() => setSidebarOpen(true)}
+          onNavigate={setPage}
         />
-        <main className="flex-1 overflow-y-auto" style={{ background: "#0b1a31" }}>
+        <main className="flex-1 overflow-y-auto" style={{ background: bg }}>
           {pages[page]}
         </main>
       </div>

@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend,
 } from "recharts";
-import { historiqueData } from "../data/lubiData";
+import { getStationSeries, stationCodes, monthlyAverages, qFromH } from "../data/lubiData";
+import { useSettings } from "../context/SettingsContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -10,47 +11,42 @@ const card = {
   borderRadius: 12,
 };
 
-const periods = ["24h", "7j", "30j", "3m"] as const;
+const periods = ["30j", "90j", "1an", "climato"] as const;
 type Period = typeof periods[number];
 
-const sliceByPeriod: Record<Period, number> = { "24h": 1, "7j": 7, "30j": 30, "3m": 30 };
+const sliceByPeriod: Record<Period, number> = { "30j": 30, "90j": 90, "1an": 365, climato: 0 };
 
 export default function Hydrologie() {
-  const [period, setPeriod] = useState<Period>("30j");
-  const [station, setStation] = useState("LUB-001");
-  const [param, setParam] = useState<"niveau" | "debit" | "profondeur">("niveau");
+  const [period, setPeriod] = useState<Period>("1an");
+  const [station, setStation] = useState("JUNCTION");
+  const [param, setParam] = useState<"debit" | "profondeur">("debit");
+  const { seuils, formatDepth } = useSettings();
 
-  const filteredData = historiqueData
-    .filter((d) => d.station === station)
-    .slice(-sliceByPeriod[period]);
+  const series = period === "climato"
+    ? monthlyAverages.map((m) => ({
+        date: m.label.slice(0, 3),
+        debit: m.qMoyenne,
+        profondeur: m.profondeurMoyenne,
+        niveau: m.profondeurMoyenne,
+      }))
+    : getStationSeries(station, sliceByPeriod[period]).map((d) => ({
+        date: d.date.slice(5),
+        debit: d.debit,
+        profondeur: d.profondeur,
+        niveau: d.profondeur,
+      }));
 
-  const chartData = filteredData.map((d) => ({
-    date: d.date.slice(5),
-    niveau: d.niveau,
-    debit: d.debit,
-    profondeur: d.profondeur,
-  }));
-
-  const allStations = ["LUB-001", "LUB-002", "LUB-003"];
+  const chartData = series;
+  const allStations = ["JUNCTION", ...stationCodes];
 
   const paramConfig = {
-    niveau: {
-      label: "Niveau d'eau (m)",
-      color: "#06b6d4",
-      grad: "niveauGrad",
-      seuils: [
-        { y: 4.2, color: "#f59e0b", label: "Vigilance" },
-        { y: 5.0, color: "#f97316", label: "Alerte" },
-        { y: 6.0, color: "#ef4444", label: "Critique" },
-      ],
-    },
     debit: {
       label: "Débit (m³/s)",
       color: "#10b981",
       grad: "debitGrad",
       seuils: [
-        { y: 2000, color: "#f59e0b", label: "Vigilance" },
-        { y: 3000, color: "#f97316", label: "Alerte" },
+        { y: qFromH(seuils.navigable), color: "#10b981", label: formatDepth(seuils.navigable, 1) },
+        { y: qFromH(seuils.etage), color: "#ef4444", label: formatDepth(seuils.etage, 1) },
       ],
     },
     profondeur: {
@@ -58,8 +54,8 @@ export default function Hydrologie() {
       color: "#8b5cf6",
       grad: "profGrad",
       seuils: [
-        { y: 2.0, color: "#f59e0b", label: "Navigation min." },
-        { y: 1.5, color: "#ef4444", label: "Seuil critique" },
+        { y: seuils.navigable, color: "#10b981", label: formatDepth(seuils.navigable, 1) },
+        { y: seuils.etage, color: "#ef4444", label: formatDepth(seuils.etage, 1) },
       ],
     },
   };
@@ -107,7 +103,7 @@ export default function Hydrologie() {
           ))}
         </div>
         <div className="flex gap-1.5 ml-auto">
-          {(["niveau", "debit", "profondeur"] as const).map((p) => (
+          {(["debit", "profondeur"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setParam(p)}
@@ -118,7 +114,7 @@ export default function Hydrologie() {
                 border: param === p ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(255,255,255,0.06)",
               }}
             >
-              {p === "niveau" ? "Niveau" : p === "debit" ? "Débit" : "Profondeur"}
+              {p === "debit" ? "Débit" : "Profondeur"}
             </button>
           ))}
         </div>
@@ -142,7 +138,7 @@ export default function Hydrologie() {
           {cfg.seuils.map((s) => (
             <div key={s.label} className="flex items-center gap-1.5 text-[11px] font-mono" style={{ color: s.color }}>
               <div className="w-3 h-0.5 rounded border-t border-dashed" style={{ borderColor: s.color }} />
-              {s.label}: {s.y} {param === "debit" ? "m³/s" : "m"}
+              {s.y} {param === "debit" ? "m³/s" : "m"}
             </div>
           ))}
         </div>

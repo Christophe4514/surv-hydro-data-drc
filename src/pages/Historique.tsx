@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { historiqueData, saisonStats } from "../data/lubiData";
+import { saisonStats, monthlyAverages, getStationSeries, stationCodes } from "../data/lubiData";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -11,10 +11,10 @@ const card = {
 };
 
 export default function Historique() {
-  const [station, setStation] = useState("LUB-001");
-  const [parametre, setParametre] = useState<"niveau" | "debit" | "profondeur">("niveau");
+  const [station, setStation] = useState("JUNCTION");
+  const [parametre, setParametre] = useState<"niveau" | "debit" | "profondeur">("debit");
 
-  const data = historiqueData.filter((d) => d.station === station);
+  const data = getStationSeries(station, 365);
 
   const chartData = data.map((d) => ({
     date: d.date.slice(5),
@@ -24,10 +24,10 @@ export default function Historique() {
     saison: d.saison,
   }));
 
-  const alertsData = Array.from({ length: 4 }, (_, i) => ({
-    week: `S${i + 1}`,
-    alertes: [2, 1, 3, 0][i],
-    vigilances: [1, 2, 1, 2][i],
+  const alertsData = monthlyAverages.map((m) => ({
+    week: m.label.slice(0, 3),
+    q: m.qMoyenne,
+    h: m.profondeurMoyenne,
   }));
 
   const colors = { niveau: "#06b6d4", debit: "#10b981", profondeur: "#8b5cf6" };
@@ -36,7 +36,7 @@ export default function Historique() {
     <div className="p-4 md:p-6 space-y-5 max-w-screen-xl mx-auto">
       <div className="flex flex-wrap gap-3">
         <div className="flex gap-1.5">
-          {["LUB-001", "LUB-002", "LUB-003"].map((s) => (
+          {["JUNCTION", ...stationCodes].map((s) => (
             <button
               key={s}
               onClick={() => setStation(s)}
@@ -74,7 +74,7 @@ export default function Historique() {
           Évolution historique — {parametre} — {station}
         </p>
         <p className="text-[11px] mb-4" style={{ color: "rgba(148,163,184,0.5)" }}>
-          30 derniers jours · données de démonstration
+          365 derniers jours · Qsim_DEC2022
         </p>
         <ResponsiveContainer width="100%" height={250}>
           <AreaChart data={chartData} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
@@ -113,11 +113,11 @@ export default function Historique() {
           </div>
           <div className="space-y-3">
             {[
-              { label: "Niveau moyen", value: `${saisonStats.pluies.niveauMoyen} m`, icon: "〜" },
               { label: "Débit moyen", value: `${saisonStats.pluies.debitMoyen} m³/s`, icon: "⇌" },
-              { label: "Niveau maximal", value: `${saisonStats.pluies.niveauMax} m`, icon: "↑" },
-              { label: "Alertes déclenchées", value: `${saisonStats.pluies.alertes}`, icon: "⚠" },
-              { label: "Jours à risque", value: `${saisonStats.pluies.joursARisque} j`, icon: "🔴" },
+              { label: "Débit maximal", value: `${saisonStats.pluies.debitMax} m³/s`, icon: "↑" },
+              { label: "Profondeur moyenne", value: `${saisonStats.pluies.profondeurMoyenne} m`, icon: "↕" },
+              { label: "Profondeur max", value: `${saisonStats.pluies.profondeurMax} m`, icon: "↑" },
+              { label: "Jours navigables", value: `${saisonStats.pluies.joursNavigables} j`, icon: "⛵" },
             ].map((s) => (
               <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(59,130,246,0.06)" }}>
                 <div className="flex items-center gap-2">
@@ -147,11 +147,11 @@ export default function Historique() {
           </div>
           <div className="space-y-3">
             {[
-              { label: "Niveau moyen", value: `${saisonStats.seche.niveauMoyen} m`, icon: "〜" },
               { label: "Débit moyen", value: `${saisonStats.seche.debitMoyen} m³/s`, icon: "⇌" },
-              { label: "Niveau minimal", value: `${saisonStats.seche.niveauMin} m`, icon: "↓" },
-              { label: "Alertes déclenchées", value: `${saisonStats.seche.alertes}`, icon: "⚠" },
-              { label: "Jours sécheresse", value: `${saisonStats.seche.joursSecheresse} j`, icon: "🏜" },
+              { label: "Débit minimal", value: `${saisonStats.seche.debitMin} m³/s`, icon: "↓" },
+              { label: "Profondeur moyenne", value: `${saisonStats.seche.profondeurMoyenne} m`, icon: "↕" },
+              { label: "Profondeur min", value: `${saisonStats.seche.profondeurMin} m`, icon: "↓" },
+              { label: "Jours non navigables", value: `${saisonStats.seche.joursNonNavigables} j`, icon: "🏜" },
             ].map((s) => (
               <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(249,115,22,0.06)" }}>
                 <div className="flex items-center gap-2">
@@ -166,15 +166,14 @@ export default function Historique() {
       </div>
 
       <div className="rounded-xl p-5" style={card}>
-        <p className="font-display font-600 text-sm text-white mb-4">Historique des alertes — 4 dernières semaines</p>
+        <p className="font-display font-600 text-sm text-white mb-4">Qmoyennes — débit climatologique par mois</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={alertsData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="week" tick={{ fontSize: 10, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }} />
             <YAxis tick={{ fontSize: 10, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }} />
             <Tooltip contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }} />
-            <Bar dataKey="alertes" fill="#ef4444" fillOpacity={0.8} radius={[3, 3, 0, 0]} name="Alertes" />
-            <Bar dataKey="vigilances" fill="#f59e0b" fillOpacity={0.8} radius={[3, 3, 0, 0]} name="Vigilances" />
+            <Bar dataKey="q" fill="#06b6d4" fillOpacity={0.8} radius={[3, 3, 0, 0]} name="Q moyenne (m³/s)" />
           </BarChart>
         </ResponsiveContainer>
       </div>

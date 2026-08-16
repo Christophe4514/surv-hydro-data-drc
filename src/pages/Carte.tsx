@@ -40,11 +40,8 @@ export default function Carte() {
           </p>
           {[
             { key: "stations" as const, label: "Stations hydrologiques", color: "#22d3ee" },
-            { key: "navigables" as const, label: "Zones navigables", color: "#10b981" },
-            { key: "nonNavigables" as const, label: "Zones non navigables", color: "#ef4444" },
-            { key: "inondation" as const, label: "Zones d'inondation", color: "#3b82f6" },
-            { key: "secheresse" as const, label: "Zones de sécheresse", color: "#f97316" },
-            { key: "alertes" as const, label: "Alertes", color: "#f59e0b" },
+            { key: "navigables" as const, label: "Bassins navigables", color: "#10b981" },
+            { key: "nonNavigables" as const, label: "Bassins non navigables", color: "#ef4444" },
           ].map(({ key, label, color }) => (
             <label key={key} className="flex items-center gap-2.5 cursor-pointer group py-1">
               <div

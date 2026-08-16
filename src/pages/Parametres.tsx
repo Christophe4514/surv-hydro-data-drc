@@ -32,12 +32,12 @@ export default function Parametres() {
     unite: "m",
     langue: "fr",
     theme: "dark",
-    seuil_normal: "3.0",
-    seuil_vigilance: "4.2",
-    seuil_alerte: "5.0",
-    seuil_critique: "6.0",
-    profondeur_nav_min: "2.0",
-    profondeur_vigilance: "1.5",
+    seuil_normal: "1.5",
+    seuil_vigilance: "1.3",
+    seuil_alerte: "1.2",
+    seuil_critique: "1.0",
+    profondeur_nav_min: "1.5",
+    profondeur_vigilance: "1.2",
   });
 
   const toggle = (key: keyof typeof settings) =>
@@ -54,8 +54,8 @@ export default function Parametres() {
           {[
             { label: "Application", value: "LUBI HYDRO" },
             { label: "Version", value: "v1.0.0" },
-            { label: "Source données", value: "Excel (.xlsx)" },
-            { label: "Dernière MAJ", value: "16/08/2026 09:45" },
+            { label: "Source données", value: "Modele_Lubi1.xlsx" },
+            { label: "Dernière MAJ", value: "31/12/2022 00:00" },
           ].map((s) => (
             <div key={s.label} className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
               <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>
@@ -66,7 +66,7 @@ export default function Parametres() {
           ))}
         </div>
         <p className="text-[11px] mt-3 px-3 py-2 rounded-lg font-mono" style={{ background: "rgba(34,211,238,0.05)", color: "rgba(34,211,238,0.6)", border: "1px solid rgba(34,211,238,0.1)" }}>
-          ℹ Système de surveillance hydrologique et de navigation de la rivière Lubi — RDC · Données de démonstration
+          Formule profondeur-calc : Q = 28 × 65 × H^(5/3) × √0,000625  ⇒  H = (Q / 45,5)^(3/5). Tirants : 1,5 m / 1,3 m / 1,2 m (étiage). Carte : Shape Lubi (WGS84).
         </p>
       </div>
 

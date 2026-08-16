@@ -29,7 +29,7 @@ export default function Dashboard({ onNavigate }: Props) {
   const { seuils, formatDepth, navOf, statusOf, alertEnabled } = useSettings();
   const { bundle } = useHydroSource();
   const {
-    stations, alertes, getStationSeries, statsGlobales, monthlyAverages, LAST_DATE,
+    stations, alertes, getStationSeries, statsGlobales, monthlyAverages, debitClasse, LAST_DATE,
   } = bundle;
 
   const chartData = getStationSeries("JUNCTION", chartPeriod === "30j" ? 30 : 365).map((d) => ({
@@ -218,6 +218,74 @@ export default function Dashboard({ onNavigate }: Props) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {debitClasse.points.length > 0 && (
+        <div className="rounded-xl p-5" style={card}>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div>
+              <p className="font-display font-600 text-sm text-white">Courbe de débit classé</p>
+              <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
+                {bundle.mode === "lubi"
+                  ? "Feuille Excel · jonction · fréquence de dépassement 2009–2022"
+                  : `${bundle.riverName} · ${debitClasse.n} jours classés`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { k: "Q10", v: debitClasse.q10, hint: "hautes eaux" },
+                { k: "Q50", v: debitClasse.q50, hint: "médiane" },
+                { k: "Q90", v: debitClasse.q90, hint: "étiage" },
+                { k: "Q95", v: debitClasse.q95, hint: "étiage sévère" },
+              ].map((q) => (
+                <div
+                  key={q.k}
+                  className="px-2.5 py-1.5 rounded-lg"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(34,211,238,0.12)" }}
+                >
+                  <p className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
+                    {q.k} · {q.hint}
+                  </p>
+                  <p className="text-xs font-mono font-700" style={{ color: "#22d3ee" }}>
+                    {fmtFr(q.v, 1)} m³/s
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={debitClasse.points} margin={{ top: 8, right: 16, left: -4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis
+                dataKey="pct"
+                type="number"
+                domain={[0, 100]}
+                tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }}
+                tickFormatter={(v) => `${v}%`}
+                label={{ value: "% de dépassement", position: "insideBottom", offset: -2, fill: "rgba(148,163,184,0.45)", fontSize: 10 }}
+              />
+              <YAxis
+                tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }}
+                label={{ value: "Q (m³/s)", angle: -90, position: "insideLeft", fill: "rgba(148,163,184,0.45)", fontSize: 10 }}
+              />
+              <Tooltip
+                contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }}
+                formatter={(value) => [`${value ?? "—"} m³/s`, "Q classé"]}
+                labelFormatter={(label) => `Dépassé ${label} % du temps`}
+              />
+              <ReferenceLine x={10} stroke="rgba(34,211,238,0.35)" strokeDasharray="3 3" />
+              <ReferenceLine x={50} stroke="rgba(148,163,184,0.35)" strokeDasharray="3 3" />
+              <ReferenceLine x={90} stroke="rgba(245,158,11,0.45)" strokeDasharray="3 3" />
+              <ReferenceLine
+                y={j.junctionDebit}
+                stroke="#f97316"
+                strokeDasharray="4 3"
+                label={{ value: `actuel ${fmtFr(j.junctionDebit, 1)}`, position: "right", fontSize: 9, fill: "#f97316" }}
+              />
+              <Line type="monotone" dataKey="q" stroke="#06b6d4" strokeWidth={2} dot={false} name="Q (m³/s)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <div className="xl:col-span-3 rounded-xl p-5 overflow-hidden" style={card}>

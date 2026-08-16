@@ -164,6 +164,50 @@ def load_catchments() -> dict:
     }
 
 
+def load_debit_classe() -> dict:
+    """Courbe de débit classé : Q simulé décroissant vs % cumulé de dépassement."""
+    xl = pd.ExcelFile(XLSX)
+    name = next((n for n in xl.sheet_names if "courbe" in n.lower() and "class" in n.lower()), None)
+    if name is None:
+        raise SystemExit("Feuille « courbe debit classé » introuvable dans Modele_Lubi1.xlsx")
+
+    df = pd.read_excel(XLSX, sheet_name=name, header=None)
+    q = pd.to_numeric(df.iloc[1:, 0], errors="coerce")
+    occ = pd.to_numeric(df.iloc[1:, 1], errors="coerce")
+    pct = pd.to_numeric(df.iloc[1:, 3], errors="coerce")
+    mask = q.notna() & pct.notna()
+    q, occ, pct = q[mask], occ[mask], pct[mask]
+
+    def q_at(target: float) -> float:
+        i = (pct - target).abs().idxmin()
+        return round(float(q.loc[i]), 1)
+
+    full = [
+        {"q": round(float(qi), 1), "pct": round(float(pi), 3)}
+        for qi, pi in zip(q, pct)
+    ]
+    max_pts = 450
+    if len(full) > max_pts:
+        step = (len(full) - 1) / (max_pts - 1)
+        idxs = sorted({round(i * step) for i in range(max_pts)} | {0, len(full) - 1})
+        points = [full[i] for i in idxs]
+    else:
+        points = full
+
+    total = df.iloc[0, 7]
+    n = int(total) if pd.notna(total) else int(occ.sum())
+    return {
+        "n": n,
+        "q10": q_at(10),
+        "q50": q_at(50),
+        "q90": q_at(90),
+        "q95": q_at(95),
+        "qMax": round(float(q.iloc[0]), 1),
+        "qMin": round(float(q.iloc[-1]), 1),
+        "points": points,
+    }
+
+
 def load_ports() -> list[dict]:
     aliases: dict[int, str] = {}
     if PORT_CSV.exists():
@@ -277,6 +321,9 @@ def main() -> None:
             }
         )
 
+    # Courbe de débit classé (FDC) — Q vs % de dépassement
+    debit_classe = load_debit_classe()
+
     # Qmoyennes — 12 monthly climatology values
     qm = pd.read_excel(XLSX, sheet_name="Qmoyennes", header=None)
     monthly = []
@@ -365,7 +412,7 @@ def main() -> None:
 
     meta = {
         "source": "Modele_Lubi1.xlsx",
-        "sheets": ["Qsim_DEC2022", "Jour_Navigable (3)", "Qmoyennes", "profondeur-calc"],
+        "sheets": ["Qsim_DEC2022", "Jour_Navigable (3)", "Qmoyennes", "profondeur-calc", "courbe debit classé"],
         "formule": "Q = 28 × 65 × H^(5/3) × √0.000625  ⇒  H = (Q / 45.5)^(3/5)",
         "seuils": {"etage": H_ETIAGE, "pluie": H_PLUIE, "navigable": H_NAV},
         "period": {"start": dates_iso[0], "end": dates_iso[-1], "nDays": len(dates_iso)},
@@ -409,6 +456,7 @@ def main() -> None:
     )
 
     (OUT / "ports.json").write_text(json.dumps(ports, ensure_ascii=False), encoding="utf-8")
+    (OUT / "debitClasse.json").write_text(json.dumps(debit_classe, ensure_ascii=False), encoding="utf-8")
 
     print("wrote", OUT)
     print("days", len(dates_iso), "from", dates_iso[0], "to", dates_iso[-1])

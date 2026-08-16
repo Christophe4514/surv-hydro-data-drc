@@ -12,6 +12,22 @@ import type {
 
 export type HydroMode = "lubi" | "excel" | "online";
 
+export interface DebitClassePoint {
+  q: number;
+  pct: number;
+}
+
+export interface DebitClasse {
+  n: number;
+  q10: number;
+  q50: number;
+  q90: number;
+  q95: number;
+  qMax: number;
+  qMin: number;
+  points: DebitClassePoint[];
+}
+
 export interface StationSeries {
   code: string;
   nom: string;
@@ -74,6 +90,7 @@ export interface HydroBundle {
     source: string;
   };
   monthlyAverages: { month: number; label: string; qMoyenne: number; profondeurMoyenne: number }[];
+  debitClasse: DebitClasse;
   navigableByMonth: { date: string; year: number; month: number; jours13: number; jours15: number; jours12: number }[];
   navigableByYear: { year: number; joursNavigables: number }[];
   saisonStats: {

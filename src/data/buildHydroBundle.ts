@@ -7,7 +7,7 @@ import type {
   StatusLevel,
 } from "./lubiData";
 import { formatDateFr, fmtFr } from "./lubiData";
-import type { GenericQsimRow, HydroBundle, RawHydroSeries } from "./hydroTypes";
+import type { DebitClasse, GenericQsimRow, HydroBundle, RawHydroSeries } from "./hydroTypes";
 
 interface SeuilsNav {
   navigable: number;
@@ -72,6 +72,40 @@ function agg(pairs: { q: number; h: number }[], seuils: SeuilsNav) {
     profondeurMin: Math.round(Math.min(...hs) * 100) / 100,
     joursNavigables: hs.filter((h) => h >= seuils.navigable).length,
     joursNonNavigables: hs.filter((h) => h < seuils.etage).length,
+  };
+}
+
+function debitClasseFromQ(qs: number[]): DebitClasse {
+  const sorted = qs.filter((q) => Number.isFinite(q) && q > 0).sort((a, b) => b - a);
+  const n = sorted.length;
+  if (!n) {
+    return { n: 0, q10: 0, q50: 0, q90: 0, q95: 0, qMax: 0, qMin: 0, points: [] };
+  }
+  const full = sorted.map((q, i) => ({
+    q: Math.round(q * 10) / 10,
+    pct: Math.round(((i + 1) / n) * 100000) / 1000,
+  }));
+  const at = (target: number) => {
+    const hit = full.find((p) => p.pct >= target);
+    return hit?.q ?? full[full.length - 1].q;
+  };
+  const maxPts = 450;
+  let points = full;
+  if (full.length > maxPts) {
+    const step = (full.length - 1) / (maxPts - 1);
+    const idxs = new Set<number>([0, full.length - 1]);
+    for (let i = 0; i < maxPts; i++) idxs.add(Math.round(i * step));
+    points = [...idxs].sort((a, b) => a - b).map((i) => full[i]);
+  }
+  return {
+    n,
+    q10: at(10),
+    q50: at(50),
+    q90: at(90),
+    q95: at(95),
+    qMax: full[0].q,
+    qMin: full[full.length - 1].q,
+    points,
   };
 }
 
@@ -310,6 +344,7 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
       source: raw.sourceLabel,
     },
     monthlyAverages,
+    debitClasse: debitClasseFromQ(raw.junction),
     navigableByMonth: [...byMonth.values()].map((b) => ({
       date: `${b.year}-${String(b.month).padStart(2, "0")}-01`,
       year: b.year,

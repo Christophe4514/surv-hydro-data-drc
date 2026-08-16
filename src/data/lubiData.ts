@@ -2,6 +2,8 @@ import metaJson from "./generated/meta.json";
 import dailyJson from "./generated/daily.json";
 import catchmentsJson from "./generated/catchments.json";
 import portsJson from "./generated/ports.json";
+import debitClasseJson from "./generated/debitClasse.json";
+import type { DebitClasse } from "./hydroTypes";
 
 export type StatusLevel = "normal" | "vigilance" | "alerte" | "critique";
 export type NavStatus = "navigable" | "vigilance" | "non-navigable";
@@ -173,6 +175,8 @@ export const monthlyAverages = meta.monthlyAverages as {
   qMoyenne: number;
   profondeurMoyenne: number;
 }[];
+
+export const debitClasse = debitClasseJson as DebitClasse;
 
 export const navigableByMonth = meta.navigableByMonth as {
   date: string;

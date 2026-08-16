@@ -38,6 +38,7 @@ function lubiBundle(): HydroBundle {
     alertes: lubi.alertes,
     statsGlobales: lubi.statsGlobales,
     monthlyAverages: lubi.monthlyAverages,
+    debitClasse: lubi.debitClasse,
     navigableByMonth: lubi.navigableByMonth,
     navigableByYear: lubi.navigableByYear,
     saisonStats: lubi.saisonStats,

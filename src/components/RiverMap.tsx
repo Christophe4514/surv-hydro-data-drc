@@ -51,12 +51,22 @@ interface Props {
   filters?: MapFilters;
 }
 
-function FitBounds({ bounds }: { bounds: [[number, number], [number, number]] }) {
+function FitBounds({ bounds, maxZoom = 10 }: { bounds: [[number, number], [number, number]]; maxZoom?: number }) {
   const map = useMap();
-  const key = bounds.flat().join(",");
+  const key = bounds.flat().join(",") + maxZoom;
   useEffect(() => {
-    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 10 });
+    map.fitBounds(bounds, { padding: [36, 36], maxZoom });
   }, [map, key]);
+  return null;
+}
+
+function HauteurPane() {
+  const map = useMap();
+  if (!map.getPane("hauteurPane")) {
+    const pane = map.createPane("hauteurPane");
+    pane.style.zIndex = "450";
+    pane.style.pointerEvents = "none";
+  }
   return null;
 }
 
@@ -96,6 +106,9 @@ export default function RiverMap({
     [ymax, xmax],
   ];
   const byCode = useMemo(() => new Map(stations.map((s) => [s.code, s])), [stations]);
+  const overlayOn = Boolean(filters.hauteur && profondeurOverlay);
+  const viewBounds: [[number, number], [number, number]] =
+    overlayOn && !compact ? profondeurOverlay!.bounds : bounds;
   const selected = stations.find((s) => s.code === selectedCode);
   const selectedPort = ports.find((p) => p.id === selectedPortId);
 
@@ -126,7 +139,7 @@ export default function RiverMap({
       color: selectedHere ? "#22d3ee" : color,
       weight: selectedHere ? 3 : 1.6,
       fillColor: color,
-      fillOpacity: selectedHere ? 0.45 : 0.32,
+      fillOpacity: overlayOn ? (selectedHere ? 0.22 : 0.1) : selectedHere ? 0.45 : 0.32,
       opacity: 0.95,
     };
   };
@@ -149,7 +162,8 @@ export default function RiverMap({
         attributionControl={!compact}
         style={{ height: "100%", width: "100%", background: "#071223" }}
       >
-        <FitBounds bounds={bounds} />
+        <FitBounds bounds={viewBounds} maxZoom={overlayOn && !compact ? 13 : 10} />
+        <HauteurPane />
         <FlyToSelected station={selected} port={selectedPort} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan sombre">
@@ -177,19 +191,19 @@ export default function RiverMap({
 
         {geojson.features.length > 0 && (
           <GeoJSON
-            key={`${filters.navigables}-${filters.nonNavigables}-${selectedCode ?? ""}`}
+            key={`${filters.navigables}-${filters.nonNavigables}-${selectedCode ?? ""}-${overlayOn ? "h" : "b"}`}
             data={geojson}
             style={styleFeature}
             onEachFeature={onEachFeature}
           />
         )}
 
-        {filters.hauteur && profondeurOverlay && (
+        {overlayOn && profondeurOverlay && (
           <ImageOverlay
-            url={profondeurOverlay.url}
+            url={`${profondeurOverlay.url}?v=2`}
             bounds={profondeurOverlay.bounds}
-            opacity={compact ? 0.7 : 0.82}
-            zIndex={350}
+            opacity={1}
+            pane="hauteurPane"
           />
         )}
 
@@ -284,7 +298,7 @@ export default function RiverMap({
                 { color: "#f8fafc", label: "Port fluvial (Ndomba, Lubunga)", ring: false, star: true },
               ]
             : [{ color: "#22d3ee", label: `Point de mesure — ${riverName}`, ring: false, star: false }]),
-          ...(filters.hauteur && profondeurOverlay
+          ...(overlayOn && profondeurOverlay
             ? profondeurOverlay.classes.map((c) => ({
                 color: c.color,
                 label: `Raster · ${c.label}`,

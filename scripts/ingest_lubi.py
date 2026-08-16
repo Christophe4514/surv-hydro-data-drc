@@ -211,12 +211,12 @@ def load_debit_classe() -> dict:
 
 
 def export_profondeur_overlay() -> dict | None:
-    """GeoTIFF classé Profondeur/Profondeur_class.tif → PNG transparent + emprise WGS84."""
+    """GeoTIFF classé → PNG épaissi, couleurs distinctes des bassins, emprise WGS84."""
     if not PROF_TIF.exists():
         return None
 
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageFilter
 
     im = Image.open(PROF_TIF)
     arr = np.array(im)
@@ -230,13 +230,31 @@ def export_profondeur_overlay() -> dict | None:
     east = west + width * px
     south = north - height * px
 
-    step = 3
+    step = 2
     small = arr[::step, ::step]
-    rgba = np.zeros((small.shape[0], small.shape[1], 4), dtype=np.uint8)
-    # Valeurs 85 / 170 / 255 = classes 1 / 2 / 3 du VAT ArcGIS
-    rgba[small == 85] = (239, 68, 68, 210)
-    rgba[small == 170] = (245, 158, 11, 210)
-    rgba[small == 255] = (16, 185, 129, 190)
+
+    def paint(value: int, rgb: tuple[int, int, int], dilate: int) -> np.ndarray:
+        mask = Image.fromarray((small == value).astype(np.uint8) * 255, "L")
+        if dilate >= 3:
+            mask = mask.filter(ImageFilter.MaxFilter(dilate if dilate % 2 else dilate + 1))
+        a = np.array(mask)
+        layer = np.zeros((a.shape[0], a.shape[1], 4), dtype=np.uint8)
+        layer[a > 0, 0] = rgb[0]
+        layer[a > 0, 1] = rgb[1]
+        layer[a > 0, 2] = rgb[2]
+        layer[a > 0, 3] = 235
+        return layer
+
+    def overlay_layers(base: np.ndarray, top: np.ndarray) -> np.ndarray:
+        out = base.copy()
+        m = top[:, :, 3] > 0
+        out[m] = top[m]
+        return out
+
+    # Classe 3 (majoritaire) puis 2 puis 1 par-dessus pour garder les hauts-fonds visibles.
+    rgba = paint(255, (34, 211, 238), 17)
+    rgba = overlay_layers(rgba, paint(170, (251, 191, 36), 21))
+    rgba = overlay_layers(rgba, paint(85, (244, 63, 94), 25))
 
     PUBLIC.mkdir(exist_ok=True)
     out_png = PUBLIC / "profondeur-class.png"
@@ -246,9 +264,9 @@ def export_profondeur_overlay() -> dict | None:
         "url": "/profondeur-class.png",
         "bounds": [[round(south, 6), round(west, 6)], [round(north, 6), round(east, 6)]],
         "classes": [
-            {"value": 1, "label": "Hauteur faible", "color": "#ef4444"},
-            {"value": 2, "label": "Hauteur moyenne", "color": "#f59e0b"},
-            {"value": 3, "label": "Hauteur élevée", "color": "#10b981"},
+            {"value": 1, "label": "Hauteur faible", "color": "#f43f5e"},
+            {"value": 2, "label": "Hauteur moyenne", "color": "#fbbf24"},
+            {"value": 3, "label": "Hauteur élevée", "color": "#22d3ee"},
         ],
     }
     (OUT / "profondeurOverlay.json").write_text(json.dumps(overlay, ensure_ascii=False), encoding="utf-8")

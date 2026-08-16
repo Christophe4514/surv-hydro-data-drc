@@ -51,7 +51,7 @@ export default function Carte() {
             { key: "nonNavigables" as const, label: "Bassins non navigables", color: "#ef4444" },
             { key: "ports" as const, label: "Ports fluviaux", color: "#f8fafc" },
             ...(bundle.profondeurOverlay
-              ? [{ key: "hauteur" as const, label: "Classes de hauteur", color: "#10b981" }]
+              ? [{ key: "hauteur" as const, label: "Classes de hauteur (chenal)", color: "#22d3ee" }]
               : []),
           ].map(({ key, label, color }) => (
             <label key={key} className="flex items-center gap-2.5 cursor-pointer group py-1">

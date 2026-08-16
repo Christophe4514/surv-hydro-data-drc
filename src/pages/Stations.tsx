@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { stations, type Station, getStationSeries } from "../data/lubiData";
+import { type Station } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import type { PageId } from "../App";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -13,6 +14,8 @@ const card = {
 interface Props { onNavigate: (p: PageId) => void; }
 
 export default function Stations({ onNavigate: _onNavigate }: Props) {
+  const { bundle } = useHydroSource();
+  const { stations, getStationSeries } = bundle;
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterNav, setFilterNav] = useState("all");

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { alertes, type AlerteItem } from "../data/lubiData";
+import { type AlerteItem } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -35,6 +36,8 @@ export default function Alertes() {
   const [filterStatut, setFilterStatut] = useState<string>("all");
   const [selected, setSelected] = useState<AlerteItem | null>(null);
   const { alertEnabled, settings } = useSettings();
+  const { bundle } = useHydroSource();
+  const { alertes } = bundle;
 
   const filtered = alertes.filter((a) => {
     if (filterGravite !== "all" && a.gravite !== filterGravite) return false;

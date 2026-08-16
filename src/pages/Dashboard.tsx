@@ -3,13 +3,11 @@ import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
 } from "recharts";
 import type { PageId } from "../App";
-import {
-  stations, alertes, getStationSeries, statsGlobales, monthlyAverages, fmtFr,
-  LAST_DATE, formatDateFr,
-} from "../data/lubiData";
+import { fmtFr, formatDateFr } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 interface Props { onNavigate: (p: PageId) => void; }
 
@@ -29,6 +27,10 @@ const alertTypeIcon: Record<string, string> = {
 export default function Dashboard({ onNavigate }: Props) {
   const [chartPeriod, setChartPeriod] = useState<"30j" | "365j">("30j");
   const { seuils, formatDepth, navOf, statusOf, alertEnabled } = useSettings();
+  const { bundle } = useHydroSource();
+  const {
+    stations, alertes, getStationSeries, statsGlobales, monthlyAverages, LAST_DATE,
+  } = bundle;
 
   const chartData = getStationSeries("JUNCTION", chartPeriod === "30j" ? 30 : 365).map((d) => ({
     date: d.date.slice(5),
@@ -70,7 +72,7 @@ export default function Dashboard({ onNavigate }: Props) {
     {
       label: "Navigation",
       value: junctionNav === "navigable" ? "NAVIGABLE" : junctionNav === "vigilance" ? "VIGILANCE" : "IMPOSSIBLE",
-      variation: `${j.zonesNavigables} / 5 bassins`,
+      variation: `${j.zonesNavigables} / ${j.stationsTotal} stations`,
       varPos: junctionNav === "navigable",
       status: junctionNav === "navigable" ? "normal" : "alerte",
       sub: `Tirant ${formatDepth(seuils.navigable, 1)}`,
@@ -81,12 +83,12 @@ export default function Dashboard({ onNavigate }: Props) {
       variation: "navigables",
       varPos: true,
       status: "normal",
-      sub: "H ≥ 1,5 m",
+      sub: `H ≥ ${formatDepth(seuils.navigable, 1)}`,
     },
     {
       label: "Vigilance",
       value: `${j.zonesVigilance}`,
-      variation: "1,2–1,5 m",
+      variation: `${formatDepth(seuils.etage, 1)}–${formatDepth(seuils.navigable, 1)}`,
       varPos: false,
       status: "vigilance",
       sub: "Étiage possible",
@@ -94,7 +96,7 @@ export default function Dashboard({ onNavigate }: Props) {
     {
       label: "Non navigables",
       value: `${j.zonesNonNavigables}`,
-      variation: "< 1,2 m",
+      variation: `< ${formatDepth(seuils.etage, 1)}`,
       varPos: false,
       status: "critique",
       sub: "Sous le tirant d'étiage",
@@ -112,7 +114,7 @@ export default function Dashboard({ onNavigate }: Props) {
       >
         <div>
           <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: statusColors[globalStatus] }}>
-            État actuel — rivière Lubi · {formatDateFr(LAST_DATE)}
+            État actuel — rivière {bundle.riverName} · {formatDateFr(LAST_DATE)}
           </p>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full animate-pulse flex-shrink-0" style={{ background: statusColors[globalStatus] }} />
@@ -221,7 +223,9 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="xl:col-span-3 rounded-xl p-5 overflow-hidden" style={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-display font-600 text-sm text-white">Bassins versants — Shape Lubi</p>
+              <p className="font-display font-600 text-sm text-white">
+                {bundle.hasCatchments ? "Bassins versants — Shape Lubi" : `Localisation — ${bundle.riverName}`}
+              </p>
               <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
                 5 sous-bassins WGS84 — colorés selon la navigabilité
               </p>

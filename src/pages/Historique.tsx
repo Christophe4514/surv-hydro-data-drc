@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { saisonStats, monthlyAverages, getStationSeries, stationCodes } from "../data/lubiData";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -11,8 +11,14 @@ const card = {
 };
 
 export default function Historique() {
+  const { bundle } = useHydroSource();
+  const { saisonStats, monthlyAverages, getStationSeries, stationCodes } = bundle;
   const [station, setStation] = useState("JUNCTION");
   const [parametre, setParametre] = useState<"niveau" | "debit" | "profondeur">("debit");
+
+  useEffect(() => {
+    if (station !== "JUNCTION" && !stationCodes.includes(station)) setStation("JUNCTION");
+  }, [station, stationCodes]);
 
   const data = getStationSeries(station, 365);
 

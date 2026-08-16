@@ -1,10 +1,8 @@
-import { useState } from "react";
-import {
-  stations, type NavStatus, getCalendarDays, navigableByMonth, navigableByYear,
-  statsGlobales, LAST_DATE, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_PLUIE,
-} from "../data/lubiData";
+import { useState, useEffect } from "react";
+import { type NavStatus, fmtFr, FORMULE_PROFONDEUR, Q_SEUIL_PLUIE } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -30,8 +28,17 @@ export default function Navigation() {
   const [tab, setTab] = useState<TabId>("conditions");
   const [calMonth, setCalMonth] = useState(11);
   const { seuils, qNavigable, qEtiage, formatDepth, navOf } = useSettings();
-  const [calYear, setCalYear] = useState(2022);
+  const { bundle } = useHydroSource();
+  const { stations, getCalendarDays, navigableByMonth, navigableByYear, statsGlobales, LAST_DATE, DATA_PERIOD } = bundle;
+  const [calYear, setCalYear] = useState(() => Number(DATA_PERIOD.end.slice(0, 4)) || 2022);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    const y = Number(DATA_PERIOD.end.slice(0, 4));
+    const m = Number(DATA_PERIOD.end.slice(5, 7));
+    if (Number.isFinite(y) && y > 1900) setCalYear(y);
+    if (Number.isFinite(m) && m >= 1 && m <= 12) setCalMonth(m - 1);
+  }, [DATA_PERIOD.end]);
 
   const firstDay = new Date(calYear, calMonth, 1);
   const lastDay = new Date(calYear, calMonth + 1, 0);
@@ -59,7 +66,7 @@ export default function Navigation() {
         }}
       >
         <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "rgba(34,211,238,0.6)" }}>
-          État global de navigation — Jonction Lubi · {LAST_DATE}
+          État global de navigation — {bundle.riverName} · {LAST_DATE}
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <div>

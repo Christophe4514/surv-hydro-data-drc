@@ -107,8 +107,16 @@ export default function Carte() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 p-4 overflow-hidden flex flex-col">
-          <div className="rounded-xl overflow-hidden flex-1" style={{ background: "rgba(7,18,35,0.8)", border: "1px solid rgba(34,211,238,0.1)" }}>
-            <RiverMap onStationClick={setSelected} />
+          <div className="rounded-xl overflow-hidden flex-1 min-h-0" style={{ background: "rgba(7,18,35,0.8)", border: "1px solid rgba(34,211,238,0.1)" }}>
+            <RiverMap
+              onStationClick={setSelected}
+              selectedCode={selected?.code ?? null}
+              filters={{
+                stations: filters.stations,
+                navigables: filters.navigables,
+                nonNavigables: filters.nonNavigables,
+              }}
+            />
           </div>
         </div>
 

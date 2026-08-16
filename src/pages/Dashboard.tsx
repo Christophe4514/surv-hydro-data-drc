@@ -215,7 +215,7 @@ export default function Dashboard({ onNavigate }: Props) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-        <div className="xl:col-span-3 rounded-xl p-5" style={card}>
+        <div className="xl:col-span-3 rounded-xl p-5 overflow-hidden" style={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-display font-600 text-sm text-white">Bassins versants — Shape Lubi</p>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { DATA_PERIOD, FORMULE_PROFONDEUR, LAST_HEURE, formatDateFr, LAST_DATE } from "../data/lubiData";
+import { formatDateFr } from "../data/lubiData";
 import { DEFAULT_SETTINGS, useSettings, type AppSettings } from "../context/SettingsContext";
+import ExternalSourcePanel from "../components/ExternalSourcePanel";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -53,6 +55,7 @@ function validate(s: AppSettings): string | null {
 
 export default function Parametres() {
   const { settings, save, reset, seuils, qNavigable, qEtiage, formatDepth } = useSettings();
+  const { bundle } = useHydroSource();
   const [draft, setDraft] = useState<AppSettings>(settings);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -97,8 +100,8 @@ export default function Parametres() {
           {[
             { label: "Application", value: "LUBI HYDRO" },
             { label: "Version", value: "v1.0.0" },
-            { label: "Source données", value: "Modele_Lubi1.xlsx" },
-            { label: "Dernière MAJ", value: `${formatDateFr(LAST_DATE)} ${LAST_HEURE}` },
+            { label: "Source données", value: bundle.sourceLabel },
+            { label: "Dernière MAJ", value: bundle.LAST_DATE ? `${formatDateFr(bundle.LAST_DATE)} ${bundle.LAST_HEURE}` : "—" },
           ].map((s) => (
             <div key={s.label} className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
               <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>
@@ -109,7 +112,8 @@ export default function Parametres() {
           ))}
         </div>
         <p className="text-[11px] mt-3 px-3 py-2 rounded-lg font-mono" style={{ background: "rgba(34,211,238,0.05)", color: "rgba(34,211,238,0.6)", border: "1px solid rgba(34,211,238,0.1)" }}>
-          {FORMULE_PROFONDEUR} · Période Qsim {DATA_PERIOD.start} → {DATA_PERIOD.end} ({DATA_PERIOD.nDays} j). Carte : Shape Lubi + Port Lubi (WGS84).
+          Période {bundle.DATA_PERIOD.start} → {bundle.DATA_PERIOD.end} ({bundle.DATA_PERIOD.nDays} j).
+          {bundle.mode === "lubi" ? " Carte : Shape Lubi + Port Lubi (WGS84)." : " Carte : point de référence (pas de shapefile bassin)."}
         </p>
       </div>
 
@@ -183,7 +187,7 @@ export default function Parametres() {
         <p className="font-display font-600 text-sm text-white mb-4">Affichage</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="p-3 rounded-lg block" style={{ background: "rgba(255,255,255,0.02)" }}>
-            <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>Unité de profondeur</p>
+            <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>Unité de hauteur</p>
             <select
               value={draft.unite}
               onChange={(e) => update("unite", e.target.value)}
@@ -258,8 +262,8 @@ export default function Parametres() {
         <p className="font-display font-600 text-sm text-white mb-4">Seuils de navigation</p>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { key: "profondeur_nav_min" as const, label: "Profondeur navigable min.", color: "#10b981" },
-            { key: "profondeur_vigilance" as const, label: "Profondeur vigilance (étiage)", color: "#f59e0b" },
+            { key: "profondeur_nav_min" as const, label: "Hauteur navigable min.", color: "#10b981" },
+            { key: "profondeur_vigilance" as const, label: "Hauteur vigilance (étiage)", color: "#f59e0b" },
           ].map(({ key, label, color }) => (
             <div key={key} className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.02)" }}>
               <p className="text-[11px] mb-2" style={{ color: "rgba(226,232,240,0.7)" }}>{label}</p>
@@ -282,6 +286,8 @@ export default function Parametres() {
           Actifs : navigable ≥ {formatDepth(seuils.navigable, 1)} (Q ≥ {qNavigable} m³/s) · étiage {formatDepth(seuils.etage, 1)} (Q ≥ {qEtiage} m³/s)
         </p>
       </div>
+
+      <ExternalSourcePanel />
 
       {message && (
         <div

@@ -13,6 +13,7 @@ Prototype UI + données réelles `Modele_Lubi1.xlsx` (Qsim 2009–2022) et bassi
 | `Qmoyennes` | Débits moyens mensuels pour les graphiques |
 | `profondeur-calc` | `Q = 28×65×H^(5/3)×√0,000625` → `H = (Q/45,5)^(3/5)` |
 | `Shape Lubi/` | Polygones des 5 sous-bassins (géoréférencement WGS84) |
+| `Profondeur/` | GeoTIFF classé `Profondeur_class.tif` (hauteur le long du chenal) |
 
 Régénérer les JSON : `npm run ingest` (Python + pandas + pyshp + openpyxl).
 
@@ -32,7 +33,7 @@ Ouvrir [http://localhost:5173](http://localhost:5173).
 | Vue générale | KPIs, graphiques, carte schématique, alertes |
 | Carte de la Lubi | Stations et filtres cartographiques |
 | Navigation | Conditions actuelles, calendrier, seuils |
-| Hydrologie | Évolution niveau / débit / profondeur |
+| Hydrologie | Évolution niveau / débit / hauteur |
 | Alertes | Liste filtrable des événements |
 | Historique | 30 jours et comparaison saisonnière |
 | Stations | Tableau détaillé des 5 stations |

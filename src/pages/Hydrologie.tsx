@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend,
 } from "recharts";
-import { getStationSeries, stationCodes, monthlyAverages, qFromH } from "../data/lubiData";
+import { qFromH } from "../data/lubiData";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -21,6 +22,12 @@ export default function Hydrologie() {
   const [station, setStation] = useState("JUNCTION");
   const [param, setParam] = useState<"debit" | "profondeur">("debit");
   const { seuils, formatDepth } = useSettings();
+  const { bundle } = useHydroSource();
+  const { getStationSeries, stationCodes, monthlyAverages } = bundle;
+
+  useEffect(() => {
+    if (station !== "JUNCTION" && !stationCodes.includes(station)) setStation("JUNCTION");
+  }, [station, stationCodes]);
 
   const series = period === "climato"
     ? monthlyAverages.map((m) => ({
@@ -50,7 +57,7 @@ export default function Hydrologie() {
       ],
     },
     profondeur: {
-      label: "Profondeur (m)",
+      label: "Hauteur (m)",
       color: "#8b5cf6",
       grad: "profGrad",
       seuils: [
@@ -114,7 +121,7 @@ export default function Hydrologie() {
                 border: param === p ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(255,255,255,0.06)",
               }}
             >
-              {p === "debit" ? "Débit" : "Profondeur"}
+              {p === "debit" ? "Débit" : "Hauteur"}
             </button>
           ))}
         </div>
@@ -123,7 +130,7 @@ export default function Hydrologie() {
       <div className="rounded-xl p-5" style={card}>
         <div className="mb-4">
           <p className="font-display font-600 text-base text-white">
-            Évolution — {cfg.label} — Rivière Lubi
+            Évolution — {cfg.label} — {bundle.riverName}
           </p>
           <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
             Station {station} · {period}
@@ -175,6 +182,7 @@ export default function Hydrologie() {
               strokeWidth={2}
               fill={`url(#${cfg.grad})`}
               dot={false}
+              name={cfg.label}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -216,7 +224,7 @@ export default function Hydrologie() {
             />
             <Legend wrapperStyle={{ fontSize: 10, color: "#94a3b8" }} />
             <Line yAxisId="left" type="monotone" dataKey="niveau" stroke="#06b6d4" strokeWidth={1.5} dot={false} name="Niveau (m)" />
-            <Line yAxisId="left" type="monotone" dataKey="profondeur" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Profondeur (m)" />
+            <Line yAxisId="left" type="monotone" dataKey="profondeur" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Hauteur (m)" />
           </LineChart>
         </ResponsiveContainer>
       </div>

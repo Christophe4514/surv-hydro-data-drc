@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { saisonStats, monthlyAverages, getStationSeries, stationCodes } from "../data/lubiData";
+import { useHydroSource } from "../context/HydroSourceContext";
+
+const paramLabels = { niveau: "Niveau", debit: "Débit", profondeur: "Hauteur" } as const;
 
 const card = {
   background: "rgba(15,36,68,0.7)",
@@ -11,8 +13,14 @@ const card = {
 };
 
 export default function Historique() {
+  const { bundle } = useHydroSource();
+  const { saisonStats, monthlyAverages, getStationSeries, stationCodes } = bundle;
   const [station, setStation] = useState("JUNCTION");
   const [parametre, setParametre] = useState<"niveau" | "debit" | "profondeur">("debit");
+
+  useEffect(() => {
+    if (station !== "JUNCTION" && !stationCodes.includes(station)) setStation("JUNCTION");
+  }, [station, stationCodes]);
 
   const data = getStationSeries(station, 365);
 
@@ -63,7 +71,7 @@ export default function Historique() {
                 border: parametre === p ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(255,255,255,0.06)",
               }}
             >
-              {p === "niveau" ? "Niveau" : p === "debit" ? "Débit" : "Profondeur"}
+              {p === "niveau" ? "Niveau" : p === "debit" ? "Débit" : "Hauteur"}
             </button>
           ))}
         </div>
@@ -71,7 +79,7 @@ export default function Historique() {
 
       <div className="rounded-xl p-5" style={card}>
         <p className="font-display font-600 text-sm text-white mb-1">
-          Évolution historique — {parametre} — {station}
+          Évolution historique — {paramLabels[parametre]} — {station}
         </p>
         <p className="text-[11px] mb-4" style={{ color: "rgba(148,163,184,0.5)" }}>
           365 derniers jours · Qsim_DEC2022
@@ -90,7 +98,7 @@ export default function Historique() {
             <Tooltip
               contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }}
             />
-            <Area type="monotone" dataKey={parametre} stroke={colors[parametre]} strokeWidth={2} fill="url(#histGrad)" dot={false} />
+            <Area type="monotone" dataKey={parametre} stroke={colors[parametre]} strokeWidth={2} fill="url(#histGrad)" dot={false} name={paramLabels[parametre]} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -115,8 +123,8 @@ export default function Historique() {
             {[
               { label: "Débit moyen", value: `${saisonStats.pluies.debitMoyen} m³/s`, icon: "⇌" },
               { label: "Débit maximal", value: `${saisonStats.pluies.debitMax} m³/s`, icon: "↑" },
-              { label: "Profondeur moyenne", value: `${saisonStats.pluies.profondeurMoyenne} m`, icon: "↕" },
-              { label: "Profondeur max", value: `${saisonStats.pluies.profondeurMax} m`, icon: "↑" },
+              { label: "Hauteur moyenne", value: `${saisonStats.pluies.profondeurMoyenne} m`, icon: "↕" },
+              { label: "Hauteur max", value: `${saisonStats.pluies.profondeurMax} m`, icon: "↑" },
               { label: "Jours navigables", value: `${saisonStats.pluies.joursNavigables} j`, icon: "⛵" },
             ].map((s) => (
               <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(59,130,246,0.06)" }}>
@@ -149,8 +157,8 @@ export default function Historique() {
             {[
               { label: "Débit moyen", value: `${saisonStats.seche.debitMoyen} m³/s`, icon: "⇌" },
               { label: "Débit minimal", value: `${saisonStats.seche.debitMin} m³/s`, icon: "↓" },
-              { label: "Profondeur moyenne", value: `${saisonStats.seche.profondeurMoyenne} m`, icon: "↕" },
-              { label: "Profondeur min", value: `${saisonStats.seche.profondeurMin} m`, icon: "↓" },
+              { label: "Hauteur moyenne", value: `${saisonStats.seche.profondeurMoyenne} m`, icon: "↕" },
+              { label: "Hauteur min", value: `${saisonStats.seche.profondeurMin} m`, icon: "↓" },
               { label: "Jours non navigables", value: `${saisonStats.seche.joursNonNavigables} j`, icon: "🏜" },
             ].map((s) => (
               <div key={s.label} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "rgba(249,115,22,0.06)" }}>

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { stations, ports, exutoire, type Station, type Port } from "../data/lubiData";
+import { type Station, type Port } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 type Selection = { kind: "station"; station: Station } | { kind: "port"; port: Port };
 
@@ -12,11 +13,14 @@ const card = {
 };
 
 export default function Carte() {
+  const { bundle } = useHydroSource();
+  const { stations, ports, exutoire } = bundle;
   const [filters, setFilters] = useState({
     stations: true,
     navigables: true,
     nonNavigables: true,
     ports: true,
+    hauteur: true,
     inondation: true,
     secheresse: true,
     alertes: true,
@@ -34,7 +38,7 @@ export default function Carte() {
       >
         <div className="p-4 border-b" style={{ borderColor: "rgba(34,211,238,0.1)" }}>
           <p className="font-display font-600 text-sm text-white mb-1">Filtres cartographiques</p>
-          <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>Rivière Lubi — RDC</p>
+          <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>{bundle.riverName} — RDC</p>
         </div>
 
         <div className="p-4 space-y-2">
@@ -46,6 +50,9 @@ export default function Carte() {
             { key: "navigables" as const, label: "Bassins navigables", color: "#10b981" },
             { key: "nonNavigables" as const, label: "Bassins non navigables", color: "#ef4444" },
             { key: "ports" as const, label: "Ports fluviaux", color: "#f8fafc" },
+            ...(bundle.profondeurOverlay
+              ? [{ key: "hauteur" as const, label: "Classes de hauteur (chenal)", color: "#22d3ee" }]
+              : []),
           ].map(({ key, label, color }) => (
             <label key={key} className="flex items-center gap-2.5 cursor-pointer group py-1">
               <div
@@ -68,12 +75,24 @@ export default function Carte() {
             Légende
           </p>
           {[
-            { color: "#10b981", label: "Conditions normales" },
-            { color: "#f59e0b", label: "Vigilance" },
-            { color: "#f97316", label: "Alerte" },
-            { color: "#ef4444", label: "Critique" },
-            { color: "#ef4444", label: "Exutoire (Tshangabeni)", ring: true },
-            { color: "#f8fafc", label: "Port fluvial", star: true },
+            { color: "#10b981", label: "Conditions normales", ring: false, star: false },
+            { color: "#f59e0b", label: "Vigilance", ring: false, star: false },
+            { color: "#f97316", label: "Alerte", ring: false, star: false },
+            { color: "#ef4444", label: "Critique", ring: false, star: false },
+            ...(bundle.mode === "lubi"
+              ? [
+                  { color: "#ef4444", label: "Exutoire (Tshangabeni)", ring: true, star: false },
+                  { color: "#f8fafc", label: "Port fluvial", ring: false, star: true },
+                  ...(bundle.profondeurOverlay
+                    ? bundle.profondeurOverlay.classes.map((c) => ({
+                        color: c.color,
+                        label: c.label,
+                        ring: false,
+                        star: false,
+                      }))
+                    : []),
+                ]
+              : [{ color: "#22d3ee", label: "Point de mesure", ring: false, star: false }]),
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-2 mb-2">
               <div
@@ -181,6 +200,7 @@ export default function Carte() {
                 navigables: filters.navigables,
                 nonNavigables: filters.nonNavigables,
                 ports: filters.ports,
+                hauteur: filters.hauteur,
               }}
             />
           </div>
@@ -204,7 +224,7 @@ export default function Carte() {
                 {[
                   { label: "Niveau", value: `${selected.station.niveau} m`, status: "normal" },
                   { label: "Débit", value: `${selected.station.debit} m³/s`, status: null },
-                  { label: "Profondeur", value: `${selected.station.profondeur} m`, status: null },
+                  { label: "Hauteur", value: `${selected.station.profondeur} m`, status: null },
                   { label: "Navigation", value: null, status: selected.station.navigation },
                   { label: "Inondation", value: null, status: selected.station.risqueInondation },
                   { label: "Sécheresse", value: null, status: selected.station.risqueSecheresse },
@@ -239,20 +259,20 @@ export default function Carte() {
                   <p className="text-sm font-600 text-white">{selected.port.nom}</p>
                   <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
                     {selected.port.role === "exutoire"
-                      ? exutoire.zone
-                      : `${selected.port.territoire || "Bassin Lubi"}`}
+                      ? exutoire?.zone
+                      : `${selected.port.territoire || "Bassin"}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {selected.port.role === "exutoire" && <StatusBadge status={exutoire.status} size="md" />}
+                  {selected.port.role === "exutoire" && exutoire && <StatusBadge status={exutoire.status} size="md" />}
                   <button onClick={() => setSelected(null)} style={{ color: "rgba(148,163,184,0.4)", fontSize: 16 }}>×</button>
                 </div>
               </div>
               <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                {(selected.port.role === "exutoire"
+                {(selected.port.role === "exutoire" && exutoire
                   ? [
                       { label: "Débit Junction", value: `${exutoire.debit} m³/s` },
-                      { label: "Profondeur", value: `${exutoire.profondeur} m` },
+                      { label: "Hauteur", value: `${exutoire.profondeur} m` },
                       { label: "Latitude", value: `${selected.port.latitude}°` },
                       { label: "Longitude", value: `${selected.port.longitude}°` },
                     ]
@@ -271,7 +291,7 @@ export default function Carte() {
                   </div>
                 ))}
               </div>
-              {selected.port.role === "exutoire" && (
+              {selected.port.role === "exutoire" && exutoire && (
                 <div className="mt-3">
                   <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: "rgba(148,163,184,0.5)" }}>
                     Navigation
@@ -280,8 +300,8 @@ export default function Carte() {
                 </div>
               )}
               <p className="text-[10px] mt-2 font-mono" style={{ color: "rgba(148,163,184,0.4)" }}>
-                Source : shapefile Port Lubi · WGS84
-                {selected.port.role === "exutoire" ? ` · ${exutoire.derniereMesure}` : ""}
+                Source : {bundle.sourceLabel}
+                {selected.port.role === "exutoire" && exutoire ? ` · ${exutoire.derniereMesure}` : ""}
               </p>
             </div>
           </div>

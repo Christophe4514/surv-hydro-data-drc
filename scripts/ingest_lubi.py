@@ -14,7 +14,9 @@ XLSX = ROOT / "Modele_Lubi1.xlsx"
 SHP = ROOT / "Shape Lubi" / "Lubi"
 PORT_SHP = ROOT / "Port Lubi" / "PORT"
 PORT_CSV = ROOT / "Port Lubi" / "port.csv"
+PROF_TIF = ROOT / "Profondeur" / "Profondeur_class.tif"
 OUT = ROOT / "src" / "data" / "generated"
+PUBLIC = ROOT / "public"
 
 # Manning-style rating used in profondeur-calc:
 # Q = 28 * 65 * H^(5/3) * sqrt(0.000625)
@@ -164,6 +166,113 @@ def load_catchments() -> dict:
     }
 
 
+def load_debit_classe() -> dict:
+    """Courbe de débit classé : Q simulé décroissant vs % cumulé de dépassement."""
+    xl = pd.ExcelFile(XLSX)
+    name = next((n for n in xl.sheet_names if "courbe" in n.lower() and "class" in n.lower()), None)
+    if name is None:
+        raise SystemExit("Feuille « courbe debit classé » introuvable dans Modele_Lubi1.xlsx")
+
+    df = pd.read_excel(XLSX, sheet_name=name, header=None)
+    q = pd.to_numeric(df.iloc[1:, 0], errors="coerce")
+    occ = pd.to_numeric(df.iloc[1:, 1], errors="coerce")
+    pct = pd.to_numeric(df.iloc[1:, 3], errors="coerce")
+    mask = q.notna() & pct.notna()
+    q, occ, pct = q[mask], occ[mask], pct[mask]
+
+    def q_at(target: float) -> float:
+        i = (pct - target).abs().idxmin()
+        return round(float(q.loc[i]), 1)
+
+    full = [
+        {"q": round(float(qi), 1), "pct": round(float(pi), 3)}
+        for qi, pi in zip(q, pct)
+    ]
+    max_pts = 450
+    if len(full) > max_pts:
+        step = (len(full) - 1) / (max_pts - 1)
+        idxs = sorted({round(i * step) for i in range(max_pts)} | {0, len(full) - 1})
+        points = [full[i] for i in idxs]
+    else:
+        points = full
+
+    total = df.iloc[0, 7]
+    n = int(total) if pd.notna(total) else int(occ.sum())
+    return {
+        "n": n,
+        "q10": q_at(10),
+        "q50": q_at(50),
+        "q90": q_at(90),
+        "q95": q_at(95),
+        "qMax": round(float(q.iloc[0]), 1),
+        "qMin": round(float(q.iloc[-1]), 1),
+        "points": points,
+    }
+
+
+def export_profondeur_overlay() -> dict | None:
+    """GeoTIFF classé → PNG épaissi, couleurs distinctes des bassins, emprise WGS84."""
+    if not PROF_TIF.exists():
+        return None
+
+    import numpy as np
+    from PIL import Image, ImageFilter
+
+    im = Image.open(PROF_TIF)
+    arr = np.array(im)
+    height, width = arr.shape
+    tags = getattr(im, "tag_v2", {}) or {}
+    scale = tags.get(33550)
+    tie = tags.get(33922)
+    px = float(scale[0]) if scale else 0.0000358756
+    west = float(tie[3]) if tie else 23.381396157
+    north = float(tie[4]) if tie else -5.23721370568
+    east = west + width * px
+    south = north - height * px
+
+    step = 2
+    small = arr[::step, ::step]
+
+    def paint(value: int, rgb: tuple[int, int, int], dilate: int) -> np.ndarray:
+        mask = Image.fromarray((small == value).astype(np.uint8) * 255, "L")
+        if dilate >= 3:
+            mask = mask.filter(ImageFilter.MaxFilter(dilate if dilate % 2 else dilate + 1))
+        a = np.array(mask)
+        layer = np.zeros((a.shape[0], a.shape[1], 4), dtype=np.uint8)
+        layer[a > 0, 0] = rgb[0]
+        layer[a > 0, 1] = rgb[1]
+        layer[a > 0, 2] = rgb[2]
+        layer[a > 0, 3] = 235
+        return layer
+
+    def overlay_layers(base: np.ndarray, top: np.ndarray) -> np.ndarray:
+        out = base.copy()
+        m = top[:, :, 3] > 0
+        out[m] = top[m]
+        return out
+
+    # Classe 3 (majoritaire) puis 2 puis 1 par-dessus pour garder les hauts-fonds visibles.
+    rgba = paint(255, (34, 211, 238), 17)
+    rgba = overlay_layers(rgba, paint(170, (251, 191, 36), 21))
+    rgba = overlay_layers(rgba, paint(85, (244, 63, 94), 25))
+
+    PUBLIC.mkdir(exist_ok=True)
+    out_png = PUBLIC / "profondeur-class.png"
+    Image.fromarray(rgba, "RGBA").save(out_png, optimize=True)
+
+    overlay = {
+        "url": "/profondeur-class.png",
+        "bounds": [[round(south, 6), round(west, 6)], [round(north, 6), round(east, 6)]],
+        "classes": [
+            {"value": 1, "label": "Hauteur faible", "color": "#f43f5e"},
+            {"value": 2, "label": "Hauteur moyenne", "color": "#fbbf24"},
+            {"value": 3, "label": "Hauteur élevée", "color": "#22d3ee"},
+        ],
+    }
+    (OUT / "profondeurOverlay.json").write_text(json.dumps(overlay, ensure_ascii=False), encoding="utf-8")
+    return overlay
+
+
 def load_ports() -> list[dict]:
     aliases: dict[int, str] = {}
     if PORT_CSV.exists():
@@ -277,6 +386,10 @@ def main() -> None:
             }
         )
 
+    # Courbe de débit classé (FDC) — Q vs % de dépassement
+    debit_classe = load_debit_classe()
+    profondeur_overlay = export_profondeur_overlay()
+
     # Qmoyennes — 12 monthly climatology values
     qm = pd.read_excel(XLSX, sheet_name="Qmoyennes", header=None)
     monthly = []
@@ -365,7 +478,7 @@ def main() -> None:
 
     meta = {
         "source": "Modele_Lubi1.xlsx",
-        "sheets": ["Qsim_DEC2022", "Jour_Navigable (3)", "Qmoyennes", "profondeur-calc"],
+        "sheets": ["Qsim_DEC2022", "Jour_Navigable (3)", "Qmoyennes", "profondeur-calc", "courbe debit classé"],
         "formule": "Q = 28 × 65 × H^(5/3) × √0.000625  ⇒  H = (Q / 45.5)^(3/5)",
         "seuils": {"etage": H_ETIAGE, "pluie": H_PLUIE, "navigable": H_NAV},
         "period": {"start": dates_iso[0], "end": dates_iso[-1], "nDays": len(dates_iso)},
@@ -409,6 +522,9 @@ def main() -> None:
     )
 
     (OUT / "ports.json").write_text(json.dumps(ports, ensure_ascii=False), encoding="utf-8")
+    (OUT / "debitClasse.json").write_text(json.dumps(debit_classe, ensure_ascii=False), encoding="utf-8")
+    if profondeur_overlay:
+        print("profondeur overlay", PUBLIC / "profondeur-class.png")
 
     print("wrote", OUT)
     print("days", len(dates_iso), "from", dates_iso[0], "to", dates_iso[-1])

@@ -3,13 +3,11 @@ import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
 } from "recharts";
 import type { PageId } from "../App";
-import {
-  stations, alertes, getStationSeries, statsGlobales, monthlyAverages, fmtFr,
-  LAST_DATE, formatDateFr,
-} from "../data/lubiData";
+import { fmtFr, formatDateFr } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 interface Props { onNavigate: (p: PageId) => void; }
 
@@ -29,6 +27,10 @@ const alertTypeIcon: Record<string, string> = {
 export default function Dashboard({ onNavigate }: Props) {
   const [chartPeriod, setChartPeriod] = useState<"30j" | "365j">("30j");
   const { seuils, formatDepth, navOf, statusOf, alertEnabled } = useSettings();
+  const { bundle } = useHydroSource();
+  const {
+    stations, alertes, getStationSeries, statsGlobales, monthlyAverages, debitClasse, LAST_DATE,
+  } = bundle;
 
   const chartData = getStationSeries("JUNCTION", chartPeriod === "30j" ? 30 : 365).map((d) => ({
     date: d.date.slice(5),
@@ -60,17 +62,17 @@ export default function Dashboard({ onNavigate }: Props) {
       sub: "Total à la confluence",
     },
     {
-      label: "Profondeur",
+      label: "Hauteur",
       value: formatDepth(j.junctionProfondeur, 2),
       variation: `seuil ${formatDepth(seuils.navigable, 1)}`,
       varPos: j.junctionProfondeur >= seuils.navigable,
       status: j.junctionProfondeur >= seuils.navigable ? "normal" : "alerte",
-      sub: "H = (Q / 45,5)^(3/5)",
+      sub: "Jonction",
     },
     {
       label: "Navigation",
       value: junctionNav === "navigable" ? "NAVIGABLE" : junctionNav === "vigilance" ? "VIGILANCE" : "IMPOSSIBLE",
-      variation: `${j.zonesNavigables} / 5 bassins`,
+      variation: `${j.zonesNavigables} / ${j.stationsTotal} stations`,
       varPos: junctionNav === "navigable",
       status: junctionNav === "navigable" ? "normal" : "alerte",
       sub: `Tirant ${formatDepth(seuils.navigable, 1)}`,
@@ -81,12 +83,12 @@ export default function Dashboard({ onNavigate }: Props) {
       variation: "navigables",
       varPos: true,
       status: "normal",
-      sub: "H ≥ 1,5 m",
+      sub: `H ≥ ${formatDepth(seuils.navigable, 1)}`,
     },
     {
       label: "Vigilance",
       value: `${j.zonesVigilance}`,
-      variation: "1,2–1,5 m",
+      variation: `${formatDepth(seuils.etage, 1)}–${formatDepth(seuils.navigable, 1)}`,
       varPos: false,
       status: "vigilance",
       sub: "Étiage possible",
@@ -94,7 +96,7 @@ export default function Dashboard({ onNavigate }: Props) {
     {
       label: "Non navigables",
       value: `${j.zonesNonNavigables}`,
-      variation: "< 1,2 m",
+      variation: `< ${formatDepth(seuils.etage, 1)}`,
       varPos: false,
       status: "critique",
       sub: "Sous le tirant d'étiage",
@@ -112,7 +114,7 @@ export default function Dashboard({ onNavigate }: Props) {
       >
         <div>
           <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: statusColors[globalStatus] }}>
-            État actuel — rivière Lubi · {formatDateFr(LAST_DATE)}
+            État actuel — rivière {bundle.riverName} · {formatDateFr(LAST_DATE)}
           </p>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full animate-pulse flex-shrink-0" style={{ background: statusColors[globalStatus] }} />
@@ -161,9 +163,9 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="rounded-xl p-5" style={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-display font-600 text-sm text-white">Profondeur à la jonction</p>
+              <p className="font-display font-600 text-sm text-white">Hauteur à la jonction</p>
               <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
-                Calculée depuis Qsim · H = (Q / 45,5)^(3/5)
+                Calculée depuis Qsim
               </p>
             </div>
             <div className="flex gap-1.5">
@@ -197,7 +199,7 @@ export default function Dashboard({ onNavigate }: Props) {
               <Tooltip contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }} />
               <ReferenceLine y={seuils.navigable} stroke="#10b981" strokeDasharray="4 3" label={{ value: formatDepth(seuils.navigable, 1), position: "right", fontSize: 9, fill: "#10b981" }} />
               <ReferenceLine y={seuils.etage} stroke="#ef4444" strokeDasharray="4 3" label={{ value: formatDepth(seuils.etage, 1), position: "right", fontSize: 9, fill: "#ef4444" }} />
-              <Area type="monotone" dataKey="profondeur" stroke="#06b6d4" strokeWidth={2} fill="url(#niveauGrad)" dot={false} />
+              <Area type="monotone" dataKey="profondeur" stroke="#06b6d4" strokeWidth={2} fill="url(#niveauGrad)" dot={false} name="Hauteur (m)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -217,11 +219,81 @@ export default function Dashboard({ onNavigate }: Props) {
         </div>
       </div>
 
+      {debitClasse.points.length > 0 && (
+        <div className="rounded-xl p-5" style={card}>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div>
+              <p className="font-display font-600 text-sm text-white">Courbe de débit classé</p>
+              <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
+                {bundle.mode === "lubi"
+                  ? "Feuille Excel · jonction · fréquence de dépassement 2009–2022"
+                  : `${bundle.riverName} · ${debitClasse.n} jours classés`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { k: "Q10", v: debitClasse.q10, hint: "hautes eaux" },
+                { k: "Q50", v: debitClasse.q50, hint: "médiane" },
+                { k: "Q90", v: debitClasse.q90, hint: "étiage" },
+                { k: "Q95", v: debitClasse.q95, hint: "étiage sévère" },
+              ].map((q) => (
+                <div
+                  key={q.k}
+                  className="px-2.5 py-1.5 rounded-lg"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(34,211,238,0.12)" }}
+                >
+                  <p className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
+                    {q.k} · {q.hint}
+                  </p>
+                  <p className="text-xs font-mono font-700" style={{ color: "#22d3ee" }}>
+                    {fmtFr(q.v, 1)} m³/s
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={debitClasse.points} margin={{ top: 8, right: 16, left: -4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis
+                dataKey="pct"
+                type="number"
+                domain={[0, 100]}
+                tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }}
+                tickFormatter={(v) => `${v}%`}
+                label={{ value: "% de dépassement", position: "insideBottom", offset: -2, fill: "rgba(148,163,184,0.45)", fontSize: 10 }}
+              />
+              <YAxis
+                tick={{ fontSize: 9, fill: "rgba(148,163,184,0.5)", fontFamily: "JetBrains Mono" }}
+                label={{ value: "Q (m³/s)", angle: -90, position: "insideLeft", fill: "rgba(148,163,184,0.45)", fontSize: 10 }}
+              />
+              <Tooltip
+                contentStyle={{ background: "#071223", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8, fontSize: 11 }}
+                formatter={(value) => [`${value ?? "—"} m³/s`, "Q classé"]}
+                labelFormatter={(label) => `Dépassé ${label} % du temps`}
+              />
+              <ReferenceLine x={10} stroke="rgba(34,211,238,0.35)" strokeDasharray="3 3" />
+              <ReferenceLine x={50} stroke="rgba(148,163,184,0.35)" strokeDasharray="3 3" />
+              <ReferenceLine x={90} stroke="rgba(245,158,11,0.45)" strokeDasharray="3 3" />
+              <ReferenceLine
+                y={j.junctionDebit}
+                stroke="#f97316"
+                strokeDasharray="4 3"
+                label={{ value: `actuel ${fmtFr(j.junctionDebit, 1)}`, position: "right", fontSize: 9, fill: "#f97316" }}
+              />
+              <Line type="monotone" dataKey="q" stroke="#06b6d4" strokeWidth={2} dot={false} name="Q (m³/s)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <div className="xl:col-span-3 rounded-xl p-5 overflow-hidden" style={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-display font-600 text-sm text-white">Bassins versants — Shape Lubi</p>
+              <p className="font-display font-600 text-sm text-white">
+                {bundle.hasCatchments ? "Bassins versants — Shape Lubi" : `Localisation — ${bundle.riverName}`}
+              </p>
               <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.5)" }}>
                 5 sous-bassins WGS84 — colorés selon la navigabilité
               </p>
@@ -288,7 +360,7 @@ export default function Dashboard({ onNavigate }: Props) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["Station", "Bassin", "Débit (m³/s)", "Profondeur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
+                {["Station", "Bassin", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
                   <th key={h} className="py-2 px-3 text-left font-mono font-500 text-[10px] uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
                     {h}
                   </th>

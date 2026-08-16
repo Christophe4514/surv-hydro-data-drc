@@ -1,4 +1,5 @@
 import type { PageId } from "../App";
+import { statsGlobales } from "../data/lubiData";
 
 const pageTitles: Record<PageId, { title: string; sub: string }> = {
   dashboard: { title: "Vue générale", sub: "État hydrologique de la rivière Lubi" },
@@ -61,7 +62,7 @@ export default function Header({ page, time, onMenuToggle }: Props) {
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#10b981" }} />
             <p className="text-[11px] font-mono" style={{ color: "rgba(148,163,184,0.6)" }}>
-              Mise à jour: 16/08/2026 — 09:45
+              Mise à jour: {statsGlobales.derniereMiseAJour}
             </p>
           </div>
           <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.4)" }}>

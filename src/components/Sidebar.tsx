@@ -1,4 +1,5 @@
 import type { PageId } from "../App";
+import { alertes } from "../data/lubiData";
 
 interface NavItem {
   id: PageId;
@@ -91,7 +92,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
                     className="ml-auto text-[10px] font-mono font-600 px-1.5 py-0.5 rounded-full"
                     style={{ background: "#ef4444", color: "white" }}
                   >
-                    4
+                    {alertes.filter((a) => a.statut === "active").length}
                   </span>
                 )}
               </button>
@@ -104,11 +105,11 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
         <div className="flex items-center gap-2 mb-1">
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#10b981" }} />
           <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.6)" }}>
-            Source: données Excel
+            Source: Modele_Lubi1.xlsx
           </p>
         </div>
         <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.4)" }}>
-          v1.0.0 — démo
+          Qsim 2009–2022
         </p>
       </div>
     </aside>

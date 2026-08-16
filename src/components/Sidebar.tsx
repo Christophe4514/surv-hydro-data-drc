@@ -1,6 +1,6 @@
 import type { PageId } from "../App";
-import { alertes } from "../data/lubiData";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 interface NavItem {
   id: PageId;
@@ -10,7 +10,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "dashboard", label: "Vue générale", icon: "⊞" },
-  { id: "carte", label: "Carte de la Lubi", icon: "◎" },
+  { id: "carte", label: "Carte", icon: "◎" },
   { id: "navigation", label: "Navigation", icon: "⛵" },
   { id: "hydrologie", label: "Hydrologie", icon: "〜" },
   { id: "alertes", label: "Alertes", icon: "⚠" },
@@ -29,6 +29,8 @@ interface Props {
 
 export default function Sidebar({ currentPage, onNavigate, open }: Props) {
   const { alertEnabled, settings } = useSettings();
+  const { bundle } = useHydroSource();
+  const { alertes, riverName, sourceLabel, mode, DATA_PERIOD } = bundle;
   const panel = settings.theme === "dim" ? "#102038" : "#071223";
   const nAlertes = alertes.filter((a) => a.statut === "active" && alertEnabled(a.gravite)).length;
   return (
@@ -68,7 +70,7 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
               LUBI HYDRO
             </p>
             <p className="text-[10px]" style={{ color: "rgba(148,163,184,0.7)" }}>
-              Rivière Lubi — RDC
+              {mode === "lubi" ? "Rivière Lubi — RDC" : riverName}
             </p>
           </div>
         </div>
@@ -109,11 +111,11 @@ export default function Sidebar({ currentPage, onNavigate, open }: Props) {
         <div className="flex items-center gap-2 mb-1">
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#10b981" }} />
           <p className="text-[11px]" style={{ color: "rgba(148,163,184,0.6)" }}>
-            Source: Modele_Lubi1.xlsx
+            Source: {mode === "lubi" ? "Modele_Lubi1.xlsx" : sourceLabel}
           </p>
         </div>
         <p className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.4)" }}>
-          Qsim 2009–2022
+          {DATA_PERIOD.start.slice(0, 4)}–{DATA_PERIOD.end.slice(0, 4)}
         </p>
       </div>
     </aside>

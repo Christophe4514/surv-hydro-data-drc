@@ -1,19 +1,21 @@
 import { useMemo, useState } from "react";
 import type { PageId } from "../App";
-import { alertes, statsGlobales } from "../data/lubiData";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
-const pageTitles: Record<PageId, { title: string; sub: string }> = {
-  dashboard: { title: "Vue générale", sub: "État hydrologique de la rivière Lubi" },
-  carte: { title: "Carte de la Lubi", sub: "Cartographie et stations de mesure" },
-  navigation: { title: "Navigation", sub: "Conditions de navigation sur la Lubi" },
-  hydrologie: { title: "Hydrologie", sub: "Analyse hydrologique — rivière Lubi" },
-  alertes: { title: "Alertes", sub: "Système d'alerte hydrologique" },
-  historique: { title: "Historique", sub: "Données historiques de la Lubi" },
-  stations: { title: "Stations", sub: "Stations de mesure de la rivière Lubi" },
-  donnees: { title: "Données", sub: "Données brutes — fichier Excel" },
-  parametres: { title: "Paramètres", sub: "Configuration de l'application" },
-};
+function pageTitles(river: string): Record<PageId, { title: string; sub: string }> {
+  return {
+    dashboard: { title: "Vue générale", sub: `État hydrologique de la rivière ${river}` },
+    carte: { title: `Carte — ${river}`, sub: "Cartographie et stations de mesure" },
+    navigation: { title: "Navigation", sub: `Conditions de navigation sur ${river}` },
+    hydrologie: { title: "Hydrologie", sub: `Analyse hydrologique — rivière ${river}` },
+    alertes: { title: "Alertes", sub: "Système d'alerte hydrologique" },
+    historique: { title: "Historique", sub: `Données historiques de ${river}` },
+    stations: { title: "Stations", sub: `Stations de mesure — ${river}` },
+    donnees: { title: "Données", sub: "Données brutes" },
+    parametres: { title: "Paramètres", sub: "Configuration de l'application" },
+  };
+}
 
 interface Props {
   page: PageId;
@@ -23,9 +25,11 @@ interface Props {
 }
 
 export default function Header({ page, time, onMenuToggle, onNavigate }: Props) {
-  const { title, sub } = pageTitles[page];
   const { settings, alertEnabled } = useSettings();
+  const { bundle, activateLubi } = useHydroSource();
+  const { alertes, statsGlobales, riverName, mode } = bundle;
   const [openNotif, setOpenNotif] = useState(false);
+  const { title, sub } = pageTitles(riverName)[page];
 
   const locale = settings.langue === "en" ? "en-GB" : "fr-FR";
   const dateStr = time.toLocaleDateString(locale, {
@@ -37,7 +41,7 @@ export default function Header({ page, time, onMenuToggle, onNavigate }: Props) 
 
   const visibleAlertes = useMemo(
     () => alertes.filter((a) => a.statut === "active" && alertEnabled(a.gravite)),
-    [alertEnabled],
+    [alertEnabled, alertes],
   );
 
   return (
@@ -56,12 +60,22 @@ export default function Header({ page, time, onMenuToggle, onNavigate }: Props) 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "rgba(34,211,238,0.6)" }}>
-            Rivière Lubi
+            Rivière {riverName}
           </p>
           <span style={{ color: "rgba(148,163,184,0.3)" }}>·</span>
           <p className="text-xs" style={{ color: "rgba(148,163,184,0.5)" }}>
             RDC
           </p>
+          {mode !== "lubi" && (
+            <button
+              type="button"
+              onClick={() => void activateLubi()}
+              className="text-[10px] font-mono px-2 py-0.5 rounded"
+              style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}
+            >
+              Source externe · Lubi →
+            </button>
+          )}
         </div>
         <h1 className="font-display font-600 text-base text-white leading-tight">{title}</h1>
         <p className="text-[11px] hidden sm:block" style={{ color: "rgba(148,163,184,0.6)" }}>

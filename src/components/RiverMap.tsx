@@ -3,8 +3,9 @@ import L from "leaflet";
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Tooltip, LayersControl, useMap } from "react-leaflet";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import "leaflet/dist/leaflet.css";
-import { stations, catchments, ports, type Station, type Port, type CatchmentFeature } from "../data/lubiData";
+import { type Station, type Port, type CatchmentFeature } from "../data/lubiData";
 import { useSettings } from "../context/SettingsContext";
+import { useHydroSource } from "../context/HydroSourceContext";
 
 const statusColors: Record<string, string> = {
   normal: "#10b981",
@@ -49,17 +50,12 @@ interface Props {
   filters?: MapFilters;
 }
 
-const [xmin, ymin, xmax, ymax] = catchments.bbox;
-const bounds: [[number, number], [number, number]] = [
-  [ymin, xmin],
-  [ymax, xmax],
-];
-
-function FitBounds() {
+function FitBounds({ bounds }: { bounds: [[number, number], [number, number]] }) {
   const map = useMap();
+  const key = bounds.flat().join(",");
   useEffect(() => {
     map.fitBounds(bounds, { padding: [28, 28], maxZoom: 10 });
-  }, [map]);
+  }, [map, key]);
   return null;
 }
 
@@ -91,7 +87,14 @@ export default function RiverMap({
   filters = { stations: true, navigables: true, nonNavigables: true, ports: true },
 }: Props) {
   const { formatDepth, seuils } = useSettings();
-  const byCode = useMemo(() => new Map(stations.map((s) => [s.code, s])), []);
+  const { bundle } = useHydroSource();
+  const { stations, catchments, ports, mapCenter, hasCatchments, riverName } = bundle;
+  const [xmin, ymin, xmax, ymax] = catchments.bbox;
+  const bounds: [[number, number], [number, number]] = [
+    [ymin, xmin],
+    [ymax, xmax],
+  ];
+  const byCode = useMemo(() => new Map(stations.map((s) => [s.code, s])), [stations]);
   const selected = stations.find((s) => s.code === selectedCode);
   const selectedPort = ports.find((p) => p.id === selectedPortId);
 
@@ -104,7 +107,7 @@ export default function RiverMap({
       return filters.navigables || filters.nonNavigables;
     });
     return { type: "FeatureCollection", features };
-  }, [byCode, filters.navigables, filters.nonNavigables]);
+  }, [byCode, catchments.features, filters.navigables, filters.nonNavigables]);
 
   const visibleStations = stations.filter((s) => {
     if (!filters.stations) return false;
@@ -139,12 +142,13 @@ export default function RiverMap({
       <MapContainer
         className="lubi-map"
         bounds={bounds}
+        key={`${xmin.toFixed(3)}-${ymax.toFixed(3)}`}
         scrollWheelZoom
         zoomControl={!compact}
         attributionControl={!compact}
         style={{ height: "100%", width: "100%", background: "#071223" }}
       >
-        <FitBounds />
+        <FitBounds bounds={bounds} />
         <FlyToSelected station={selected} port={selectedPort} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan sombre">
@@ -170,12 +174,28 @@ export default function RiverMap({
           </LayersControl.BaseLayer>
         </LayersControl>
 
-        <GeoJSON
-          key={`${filters.navigables}-${filters.nonNavigables}-${selectedCode ?? ""}`}
-          data={geojson}
-          style={styleFeature}
-          onEachFeature={onEachFeature}
-        />
+        {geojson.features.length > 0 && (
+          <GeoJSON
+            key={`${filters.navigables}-${filters.nonNavigables}-${selectedCode ?? ""}`}
+            data={geojson}
+            style={styleFeature}
+            onEachFeature={onEachFeature}
+          />
+        )}
+
+        {!hasCatchments && (
+          <CircleMarker
+            center={[mapCenter.lat, mapCenter.lon]}
+            radius={10}
+            pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#22d3ee", fillOpacity: 1 }}
+          >
+            <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent={!compact}>
+              <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700 }}>
+                {riverName}
+              </span>
+            </Tooltip>
+          </CircleMarker>
+        )}
 
         {visibleStations.map((s) => (
           <CircleMarker
@@ -245,11 +265,15 @@ export default function RiverMap({
         style={{ background: "rgba(7,18,35,0.92)", border: "1px solid rgba(34,211,238,0.15)" }}
       >
         {[
-          { color: "#10b981", label: `Navigable (≥ ${formatDepth(seuils.navigable, 1)})` },
-          { color: "#f59e0b", label: `Vigilance (${formatDepth(seuils.etage, 1)}–${formatDepth(seuils.navigable, 1)})` },
-          { color: "#ef4444", label: `Non navigable (< ${formatDepth(seuils.etage, 1)})` },
-          { color: "#ef4444", label: "Exutoire — Port Tshangabeni", ring: true },
-          { color: "#f8fafc", label: "Port fluvial (Ndomba, Lubunga)", star: true },
+          { color: "#10b981", label: `Navigable (≥ ${formatDepth(seuils.navigable, 1)})`, ring: false, star: false },
+          { color: "#f59e0b", label: `Vigilance (${formatDepth(seuils.etage, 1)}–${formatDepth(seuils.navigable, 1)})`, ring: false, star: false },
+          { color: "#ef4444", label: `Non navigable (< ${formatDepth(seuils.etage, 1)})`, ring: false, star: false },
+          ...(hasCatchments
+            ? [
+                { color: "#ef4444", label: "Exutoire — Port Tshangabeni", ring: true, star: false },
+                { color: "#f8fafc", label: "Port fluvial (Ndomba, Lubunga)", ring: false, star: true },
+              ]
+            : [{ color: "#22d3ee", label: `Point de mesure — ${riverName}`, ring: false, star: false }]),
         ].map((l) => (
           <div key={l.label} className="flex items-center gap-2">
             <div

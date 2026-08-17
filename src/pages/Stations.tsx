@@ -19,6 +19,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterNav, setFilterNav] = useState("all");
+  const [filterEtat, setFilterEtat] = useState("all");
   const [sortKey, setSortKey] = useState<keyof Station>("code");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<Station | null>(null);
@@ -27,9 +28,11 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
 
   const filtered = stations
     .filter((s) => {
-      if (search && !s.code.toLowerCase().includes(search.toLowerCase()) && !s.nom.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !s.code.toLowerCase().includes(search.toLowerCase()) && !s.nom.toLowerCase().includes(search.toLowerCase()) && !s.zone.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterNav !== "all" && s.navigation !== filterNav) return false;
+      if (filterEtat === "on" && !s.operationnelle) return false;
+      if (filterEtat === "off" && s.operationnelle) return false;
       return true;
     })
     .sort((a, b) => {
@@ -79,6 +82,26 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
           />
         </div>
         <div className="flex gap-1.5">
+          {[
+            { id: "all", label: "Tous états" },
+            { id: "on", label: "Fonctionnelle" },
+            { id: "off", label: "Hors service" },
+          ].map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { setFilterEtat(s.id); setPage(0); }}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-600 transition-colors"
+              style={{
+                background: filterEtat === s.id ? "rgba(34,211,238,0.15)" : "rgba(255,255,255,0.04)",
+                color: filterEtat === s.id ? "#22d3ee" : "rgba(148,163,184,0.6)",
+                border: filterEtat === s.id ? "1px solid rgba(34,211,238,0.3)" : "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5">
           {["all", "normal", "vigilance", "alerte", "critique"].map((s) => (
             <button
               key={s}
@@ -102,6 +125,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
             <thead style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <tr>
                 {th("code", "Station")}
+                {th("operationnelle", "État")}
                 {th("zone", "Zone")}
                 {th("niveau", "Niveau (m)")}
                 {th("debit", "Débit (m³/s)")}
@@ -142,6 +166,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
                       <p className="text-[10px]" style={{ color: "rgba(148,163,184,0.5)" }}>{s.nom}</p>
                     </div>
                   </td>
+                  <td className="py-3 px-3"><StatusBadge status={s.operationnelle ? "fonctionnelle" : "hors-service"} /></td>
                   <td className="py-3 px-3 text-[11px]" style={{ color: "rgba(226,232,240,0.7)" }}>{s.zone}</td>
                   <td className="py-3 px-3">
                     <p className="font-mono font-600 text-[11px] text-white">{s.niveau}</p>
@@ -211,7 +236,8 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
               { label: "Code", value: selected.code },
-              { label: "Bassin", value: selected.nom },
+              { label: "Station", value: selected.nom },
+              { label: "État", value: selected.operationnelle ? "Fonctionnelle" : "Hors service" },
               { label: "Latitude", value: selected.latitude.toFixed(4) },
               { label: "Longitude", value: selected.longitude.toFixed(4) },
               { label: "Superficie", value: `${selected.areaKm2} km²` },

@@ -10,6 +10,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "dashboard", label: "Vue générale", icon: "⊞" },
+  { id: "presentation", label: "Présentation", icon: "▤" },
   { id: "carte", label: "Carte", icon: "◎" },
   { id: "navigation", label: "Navigation", icon: "⛵" },
   { id: "hydrologie", label: "Hydrologie", icon: "〜" },

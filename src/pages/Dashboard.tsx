@@ -141,6 +141,15 @@ export default function Dashboard({ onNavigate }: Props) {
           >
             Voir la carte
           </button>
+          {bundle.mode === "lubi" && (
+            <button
+              onClick={() => onNavigate("presentation")}
+              className="px-4 py-2 rounded-lg text-sm font-600 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)", color: "rgba(226,232,240,0.8)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              Présentation
+            </button>
+          )}
         </div>
       </div>
 
@@ -360,7 +369,7 @@ export default function Dashboard({ onNavigate }: Props) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["Station", "Bassin", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
+                {["Station", "Bassin", "État", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
                   <th key={h} className="py-2 px-3 text-left font-mono font-500 text-[10px] uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
                     {h}
                   </th>
@@ -372,6 +381,7 @@ export default function Dashboard({ onNavigate }: Props) {
                 <tr key={s.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
                   <td className="py-2.5 px-3 font-mono font-600 text-[11px]" style={{ color: "#22d3ee" }}>{s.code}</td>
                   <td className="py-2.5 px-3" style={{ color: "rgba(226,232,240,0.7)" }}>{s.nom}</td>
+                  <td className="py-2.5 px-3"><StatusBadge status={s.operationnelle ? "fonctionnelle" : "hors-service"} /></td>
                   <td className="py-2.5 px-3 font-mono font-600">{s.debit}</td>
                   <td className="py-2.5 px-3 font-mono">{s.profondeur}</td>
                   <td className="py-2.5 px-3"><StatusBadge status={s.navigation} /></td>

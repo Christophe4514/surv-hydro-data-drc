@@ -6,6 +6,7 @@ import { useHydroSource } from "../context/HydroSourceContext";
 function pageTitles(river: string): Record<PageId, { title: string; sub: string }> {
   return {
     dashboard: { title: "Vue générale", sub: `État hydrologique de la rivière ${river}` },
+    presentation: { title: "Présentation", sub: `Zone d’étude — rivière ${river}` },
     carte: { title: `Carte — ${river}`, sub: "Cartographie et stations de mesure" },
     navigation: { title: "Navigation", sub: `Conditions de navigation sur ${river}` },
     hydrologie: { title: "Hydrologie", sub: `Analyse hydrologique — rivière ${river}` },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { type Station, type Port } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
+import ZoneEtudePanel from "../components/ZoneEtudePanel";
 import { useHydroSource } from "../context/HydroSourceContext";
 
 type Selection = { kind: "station"; station: Station } | { kind: "port"; port: Port };
@@ -204,6 +205,11 @@ export default function Carte() {
               }}
             />
           </div>
+          {bundle.mode === "lubi" && (
+            <div className="mt-3 flex-shrink-0">
+              <ZoneEtudePanel variant="strip" />
+            </div>
+          )}
         </div>
 
         {selected?.kind === "station" && (

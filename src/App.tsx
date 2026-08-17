@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./pages/Dashboard";
+import Presentation from "./pages/Presentation";
 import Carte from "./pages/Carte";
 import Navigation from "./pages/Navigation";
 import Hydrologie from "./pages/Hydrologie";
@@ -14,6 +15,7 @@ import { useSettings } from "./context/SettingsContext";
 
 export type PageId =
   | "dashboard"
+  | "presentation"
   | "carte"
   | "navigation"
   | "hydrologie"
@@ -44,6 +46,7 @@ export default function App() {
 
   const pages: Record<PageId, ReactNode> = {
     dashboard: <Dashboard onNavigate={setPage} />,
+    presentation: <Presentation />,
     carte: <Carte />,
     navigation: <Navigation />,
     hydrologie: <Hydrologie />,

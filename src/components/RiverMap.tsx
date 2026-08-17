@@ -236,7 +236,7 @@ export default function RiverMap({
           >
             <Tooltip direction="right" offset={[8, 0]} opacity={1} permanent={compact ? false : s.code === selectedCode}>
               <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 600 }}>
-                {s.nom} · {s.code}
+                {s.nom} · {s.code}{s.operationnelle ? "" : " · hors service"}
               </span>
             </Tooltip>
           </CircleMarker>

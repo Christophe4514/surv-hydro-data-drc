@@ -11,6 +11,8 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; d
   faible: { color: "#10b981", bg: "rgba(16,185,129,0.12)", label: "Faible", dot: "#10b981" },
   modere: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", label: "Modéré", dot: "#f59e0b" },
   eleve: { color: "#f97316", bg: "rgba(249,115,22,0.12)", label: "Élevé", dot: "#f97316" },
+  fonctionnelle: { color: "#10b981", bg: "rgba(16,185,129,0.12)", label: "Fonctionnelle", dot: "#10b981" },
+  "hors-service": { color: "#94a3b8", bg: "rgba(148,163,184,0.12)", label: "Hors service", dot: "#64748b" },
 };
 
 interface Props {

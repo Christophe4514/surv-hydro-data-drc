@@ -126,7 +126,7 @@ export default function Stations({ onNavigate: _onNavigate }: Props) {
               <tr>
                 {th("code", "Station")}
                 {th("operationnelle", "État")}
-                {th("zone", "Zone")}
+                {th("zone", "Territoire")}
                 {th("niveau", "Niveau (m)")}
                 {th("debit", "Débit (m³/s)")}
                 {th("profondeur", "Hauteur (m)")}

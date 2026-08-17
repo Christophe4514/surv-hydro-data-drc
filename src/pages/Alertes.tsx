@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { type AlerteItem } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
-import { useSettings } from "../context/SettingsContext";
 import { useHydroSource } from "../context/HydroSourceContext";
 
 const card = {
@@ -35,7 +34,6 @@ export default function Alertes() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatut, setFilterStatut] = useState<string>("all");
   const [selected, setSelected] = useState<AlerteItem | null>(null);
-  const { alertEnabled, settings } = useSettings();
   const { bundle } = useHydroSource();
   const { alertes } = bundle;
 
@@ -74,15 +72,6 @@ export default function Alertes() {
           </div>
         ))}
       </div>
-
-      {(!settings.notifCritique || !settings.notifAlerte || !settings.notifVigilance) && (
-        <p
-          className="text-[11px] px-3 py-2 rounded-lg"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", color: "#f59e0b" }}
-        >
-          Filtre notifications : critique {settings.notifCritique ? "on" : "off"} · alerte {settings.notifAlerte ? "on" : "off"} · vigilance {settings.notifVigilance ? "on" : "off"} — la cloche du bandeau n’affiche que les types activés.
-        </p>
-      )}
 
       <div className="flex flex-wrap gap-3">
         <div className="flex gap-1.5 flex-wrap">

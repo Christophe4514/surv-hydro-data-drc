@@ -68,7 +68,7 @@ function lubiBundle(): HydroBundle {
         navigation: r.navigation,
         saison: r.saison,
       })),
-    tableHeaders: ["Date", "Heure", "Lubi (2)", "Lubi (1)", "Lukeshi", "Bi (A)", "Lupaka", "Jonction", "Hauteur (m)", "Navigation", "Saison"],
+    tableHeaders: ["Date", "Heure", "Tshangabeni", "Lubi (1)", "Lukeshi", "Bi (A)", "Lupaka", "Jonction", "Hauteur (m)", "Navigation", "Saison"],
   };
 }
 

@@ -6,6 +6,7 @@ import type { PageId } from "../App";
 import { fmtFr, formatDateFr } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
+import ZoneEtudePanel from "../components/ZoneEtudePanel";
 import { useSettings } from "../context/SettingsContext";
 import { useHydroSource } from "../context/HydroSourceContext";
 
@@ -143,6 +144,8 @@ export default function Dashboard({ onNavigate }: Props) {
           </button>
         </div>
       </div>
+
+      {bundle.mode === "lubi" && <ZoneEtudePanel />}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {kpis.map((k) => (
@@ -360,7 +363,7 @@ export default function Dashboard({ onNavigate }: Props) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["Station", "Bassin", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
+                {["Station", "Bassin", "État", "Débit (m³/s)", "Hauteur (m)", "Navigation", "Territoire", "Superficie"].map((h) => (
                   <th key={h} className="py-2 px-3 text-left font-mono font-500 text-[10px] uppercase tracking-wider" style={{ color: "rgba(148,163,184,0.5)" }}>
                     {h}
                   </th>
@@ -372,6 +375,7 @@ export default function Dashboard({ onNavigate }: Props) {
                 <tr key={s.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
                   <td className="py-2.5 px-3 font-mono font-600 text-[11px]" style={{ color: "#22d3ee" }}>{s.code}</td>
                   <td className="py-2.5 px-3" style={{ color: "rgba(226,232,240,0.7)" }}>{s.nom}</td>
+                  <td className="py-2.5 px-3"><StatusBadge status={s.operationnelle ? "fonctionnelle" : "hors-service"} /></td>
                   <td className="py-2.5 px-3 font-mono font-600">{s.debit}</td>
                   <td className="py-2.5 px-3 font-mono">{s.profondeur}</td>
                   <td className="py-2.5 px-3"><StatusBadge status={s.navigation} /></td>

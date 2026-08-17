@@ -37,6 +37,9 @@ STATION_COLS = [
     ("Lupaka", "LUB-005", "Lupaka"),
 ]
 
+DISPLAY_NOM = {"LUB-002": "Tshangabeni"}
+STATIONS_OPERATIONNELLES = {"LUB-002"}
+
 
 def profondeur_from_q(q: float) -> float:
     if q is None or q <= 0 or math.isnan(q):
@@ -360,7 +363,7 @@ def main() -> None:
             {
                 "id": code[-1],
                 "code": code,
-                "nom": name,
+                "nom": DISPLAY_NOM.get(code, name),
                 "zone": geo.get("territoire") or "Bassin Lubi",
                 "excelCol": col,
                 "latitude": geo.get("latitude"),
@@ -378,6 +381,7 @@ def main() -> None:
                 "derniereMesure": f"{dates_iso[last_i]} {heures[last_i][:5]}",
                 "debitVariation": round(q - q_prev, 1),
                 "niveauVariation": round(h - station_h[code][prev_i], 3),
+                "operationnelle": code in STATIONS_OPERATIONNELLES,
                 "seuils": {
                     "etage": H_ETIAGE,
                     "pluie": H_PLUIE,

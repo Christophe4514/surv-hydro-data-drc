@@ -6,7 +6,6 @@ import type { PageId } from "../App";
 import { fmtFr, formatDateFr } from "../data/lubiData";
 import StatusBadge from "../components/StatusBadge";
 import RiverMap from "../components/RiverMap";
-import ZoneEtudePanel from "../components/ZoneEtudePanel";
 import { useSettings } from "../context/SettingsContext";
 import { useHydroSource } from "../context/HydroSourceContext";
 
@@ -142,10 +141,17 @@ export default function Dashboard({ onNavigate }: Props) {
           >
             Voir la carte
           </button>
+          {bundle.mode === "lubi" && (
+            <button
+              onClick={() => onNavigate("presentation")}
+              className="px-4 py-2 rounded-lg text-sm font-600 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)", color: "rgba(226,232,240,0.8)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              Présentation
+            </button>
+          )}
         </div>
       </div>
-
-      {bundle.mode === "lubi" && <ZoneEtudePanel />}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {kpis.map((k) => (

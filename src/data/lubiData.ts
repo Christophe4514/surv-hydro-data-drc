@@ -40,6 +40,7 @@ export interface Station {
   debitVariation: number;
   niveauVariation: number;
   seuils: StationSeuils;
+  operationnelle: boolean;
 }
 
 export interface AlerteItem {
@@ -198,6 +199,8 @@ const codeOrder = ["LUB-001", "LUB-002", "LUB-003", "LUB-004", "LUB-005"];
 export const stations: Station[] = [...(meta.stations as Station[])]
   .map((s) => ({
     ...s,
+    nom: s.code === "LUB-002" ? "Tshangabeni" : s.nom,
+    operationnelle: s.code === "LUB-002",
     km: Math.round(((s.latitude + 7.44) / (7.44 - 4.98)) * 280),
     seuils: s.seuils ?? SEUILS_NAV,
   }))

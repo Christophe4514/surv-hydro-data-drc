@@ -147,6 +147,7 @@ export function buildBundleFromRaw(raw: RawHydroSeries, seuils: SeuilsNav): Hydr
       debitVariation: Math.round((q - qPrev) * 10) / 10,
       niveauVariation: Math.round((h - hPrev) * 1000) / 1000,
       seuils: { etage: seuils.etage, pluie: seuils.pluie, navigable: seuils.navigable },
+      operationnelle: false,
     };
   });
 
